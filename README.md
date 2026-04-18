@@ -38,14 +38,15 @@ See [docs/](docs/) for the full design spec.
 
 ## Development setup
 
-> The app has not been scaffolded yet. This section is a placeholder and will be replaced with real commands once the Next.js project and Supabase project are initialized.
+Prereqs: Node.js 20+ and pnpm 10+. Scaffold was created with `create-next-app` on Next.js 16 (App Router, TypeScript, Tailwind, ESLint).
 
-Intended flow once scaffolded:
+1. `pnpm install`
+2. Copy `.env.example` to `.env.local` and fill in Supabase URL + keys, Google OAuth credentials, and `INITIAL_ADMIN_EMAIL`.
+3. Apply the schema to your Supabase project: run the SQL in [db/migrations/0001_initial_schema.sql](db/migrations/0001_initial_schema.sql) via the Supabase SQL editor (or the `supabase` CLI if you're using local dev).
+4. (Once the seed script exists) `pnpm tsx scripts/seed-admin.ts` — inserts the bootstrap admin row if `users` is empty. No-op otherwise.
+5. `pnpm dev`
 
-1. Clone the repo.
-2. Copy `.env.example` to `.env.local` and fill in Supabase + Google OAuth credentials.
-3. Run the Supabase migrations in `db/`.
-4. `pnpm install && pnpm dev`.
+Sign in at `/login` with the Google account matching `INITIAL_ADMIN_EMAIL` to get admin access; from there you can provision other users in `/admin/users`.
 
 ## License
 
