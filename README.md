@@ -41,11 +41,12 @@ See [docs/](docs/) for the full design spec.
 Prereqs: Node.js 20+ and pnpm 10+. Scaffold was created with `create-next-app` on Next.js 16 (App Router, TypeScript, Tailwind, ESLint).
 
 1. `pnpm install`
-2. Copy `.env.example` to `.env.local` and fill in Supabase URL + keys, Google OAuth credentials, and `INITIAL_ADMIN_EMAIL`.
+2. Copy `.env.example` to `.env.local` and fill in the Supabase URL + keys and `INITIAL_ADMIN_EMAIL`.
 3. Apply the schema to your Supabase project: run the SQL in [db/migrations/0001_initial_schema.sql](db/migrations/0001_initial_schema.sql) via the Supabase SQL editor (or the `supabase` CLI if you're using local dev).
-4. (Once the seed script exists) `pnpm tsx scripts/seed-admin.ts` — inserts the bootstrap admin row if `users` is empty. No-op otherwise.
-5. `pnpm dev`
-6. (Optional) `npx skills experimental_install` — restores the agent skills pinned in [skills-lock.json](skills-lock.json) into `.claude/` and `.agents/` for Claude Code / other AI assistants. Not required to run the app.
+4. Configure Google OAuth in the Supabase console (Authentication → Providers → Google). The app never touches the Google client id/secret directly — see [docs/architecture.md](docs/architecture.md) for the Google-Cloud-Console ↔ Supabase wiring.
+5. (Once the seed script exists) `pnpm tsx scripts/seed-admin.ts` — inserts the bootstrap admin row if `users` is empty. No-op otherwise.
+6. `pnpm dev`
+7. (Optional) `npx skills experimental_install` — restores the agent skills pinned in [skills-lock.json](skills-lock.json) into `.claude/` and `.agents/` for Claude Code / other AI assistants. Not required to run the app.
 
 Sign in at `/login` with the Google account matching `INITIAL_ADMIN_EMAIL` to get admin access; from there you can provision other users in `/admin/users`.
 

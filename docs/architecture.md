@@ -42,14 +42,25 @@
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SECRET_KEY=
 INITIAL_ADMIN_EMAIL=
 ```
 
-`INITIAL_ADMIN_EMAIL` is used **only** by the seed migration that bootstraps the first admin when the `users` table is empty. Once at least one admin exists, the value is ignored — see [data-model.md](data-model.md) for details.
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (the successor to the legacy `anon` key) is safe to ship to the browser and is subject to RLS if/when we enable it. `SUPABASE_SECRET_KEY` (the successor to the legacy `service_role` key) is server-only and bypasses RLS — never expose it client-side.
+
+`INITIAL_ADMIN_EMAIL` is used **only** by the seed script that bootstraps the first admin when the `users` table is empty. Once at least one admin exists, the value is ignored — see [data-model.md](data-model.md) for details.
+
+## Google OAuth
+
+Google OAuth is configured inside Supabase, not in the app's environment. One-time setup per environment:
+
+1. In Google Cloud Console → APIs & Services → Credentials, create an **OAuth 2.0 Client ID** (application type: Web application).
+2. In Supabase → Authentication → Providers → Google, copy the callback URL (`https://<project-ref>.supabase.co/auth/v1/callback`) and paste it into the Google client's **Authorized redirect URIs**.
+3. Paste the Google Client ID + Client Secret into Supabase's Google provider, enable, save.
+4. In Supabase → Authentication → URL Configuration, add the app origins allowed to initiate sign-in and receive the redirect — `http://localhost:3000` for dev, and the Vercel URL for prod.
+
+The app itself never touches Google credentials; it calls `supabase.auth.signInWithOAuth({ provider: 'google' })` and lets Supabase handle the OAuth dance.
 
 ## Deployment
 
