@@ -1,37 +1,38 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
+import { getCurrentUser } from '@/lib/auth'
+import { signOut } from './actions'
 
 export default async function Home() {
-    const supabase = await createClient()
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) redirect('/login')
-
-    const admin = createAdminClient()
-    const { data: appUser } = await admin
-        .from('users')
-        .select('display_name, email, role')
-        .eq('supabase_auth_id', user.id)
-        .maybeSingle()
-
-    const name = appUser?.display_name ?? appUser?.email ?? user.email
-    const isAdmin = appUser?.role === 'admin'
+    const user = await getCurrentUser()
+    if (!user || !user.is_active) redirect('/login')
 
     return (
-        <main className="p-8 space-y-4">
-            <header>
-                <h1 className="text-2xl font-semibold">revia-meal</h1>
-                <p className="text-sm text-neutral-500">HeyRevia lunch polls</p>
+        <main className="p-8 space-y-4 max-w-4xl">
+            <header className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-semibold">revia-meal</h1>
+                    <p className="text-sm text-neutral-500">HeyRevia lunch polls</p>
+                </div>
+                <form action={signOut}>
+                    <button className="text-sm underline" type="submit">
+                        Sign out
+                    </button>
+                </form>
             </header>
             <p>
-                Signed in as <strong>{name}</strong>
-                {isAdmin ? ' (admin)' : ''}
+                Signed in as <strong>{user.display_name ?? user.email}</strong>
+                {user.role === 'admin' ? ' (admin)' : ''}
             </p>
+            {user.role === 'admin' && (
+                <p>
+                    <Link href="/admin" className="text-blue-600 underline">
+                        Admin →
+                    </Link>
+                </p>
+            )}
             <p className="text-sm text-neutral-500">
-                Polls, leaderboard, and admin pages aren&apos;t implemented yet.
+                Polls, leaderboard, and settings aren&apos;t implemented yet.
             </p>
         </main>
     )
