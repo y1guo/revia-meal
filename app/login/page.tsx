@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { getCurrentUser } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import LoginForm from './login-form'
 
@@ -16,14 +17,28 @@ export default async function LoginPage({
     const params = await searchParams
     const next = safeNext(params.next)
 
-    const supabase = await createClient()
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+    const appUser = await getCurrentUser()
 
-    if (user) {
+    // Fully authed and active — bounce to the intended destination.
+    if (appUser && appUser.is_active) {
         redirect(next)
     }
 
-    return <LoginForm next={next} error={params.error} />
+    // Otherwise: if there's a Supabase session but no valid active app user,
+    // clear it so the user can cleanly sign in again. Surface a distinct
+    // message if the cause was deactivation (vs. allowlist removal).
+    let errorOverride: string | undefined
+    if (appUser && !appUser.is_active) {
+        errorOverride = 'deactivated'
+    }
+
+    const supabase = await createClient()
+    const {
+        data: { user: supabaseUser },
+    } = await supabase.auth.getUser()
+    if (supabaseUser && (!appUser || !appUser.is_active)) {
+        await supabase.auth.signOut()
+    }
+
+    return <LoginForm next={next} error={errorOverride ?? params.error} />
 }

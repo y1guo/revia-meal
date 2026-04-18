@@ -27,9 +27,11 @@ export default function LoginForm({
     const message =
         error === 'not_authorized'
             ? "Your email isn't on the allowlist. Ask an admin to add you."
-            : error
-              ? 'Sign-in failed. Please try again.'
-              : null
+            : error === 'deactivated'
+              ? 'Your account has been deactivated. Ask an admin to re-enable it.'
+              : error
+                ? 'Sign-in failed. Please try again.'
+                : null
 
     return (
         <main className="min-h-screen flex items-center justify-center p-8">
