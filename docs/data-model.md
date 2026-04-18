@@ -4,27 +4,34 @@ Sketch of the Postgres tables. Exact types and indexes will be finalized in migr
 
 ## users
 
-| column       | type          | notes                                               |
-|--------------|---------------|-----------------------------------------------------|
-| id           | uuid (pk)     | matches Supabase auth user id                       |
-| email        | text (unique) | must be pre-provisioned by an admin to allow login  |
-| display_name | text          |                                                     |
-| role         | text          | `user` or `admin`                                   |
-| is_active    | bool          | lets admins disable access without deleting rows    |
-| created_at   | timestamptz   |                                                     |
+| column           | type          | notes                                                                                 |
+|------------------|---------------|---------------------------------------------------------------------------------------|
+| id               | uuid (pk)     | app-level id, generated at allowlist insert (NOT the Supabase auth id)                |
+| email            | text (unique) | must be pre-provisioned by an admin to allow login                                    |
+| display_name     | text          |                                                                                       |
+| role             | text          | `user` or `admin`                                                                     |
+| is_active        | bool          | lets admins disable access without deleting rows                                      |
+| supabase_auth_id | uuid (unique) | nullable; populated on the user's first successful Google sign-in                     |
+| created_at       | timestamptz   |                                                                                       |
 
-Admins add a row here **before** someone can sign in. The login flow verifies that the Google email is present and active; anything else is rejected.
+Admins add a row here **before** someone can sign in (with `supabase_auth_id = NULL`). On each request we look up the row by the authenticated Google email; on first successful sign-in we also bind `supabase_auth_id` so downstream joins can use it stably. All foreign keys from other tables (`votes.user_id`, `api_keys.user_id`, etc.) reference `users.id`, not the Supabase auth id.
+
+A sign-in is rejected if no matching row exists or `is_active = false`.
+
+### Bootstrapping the first admin
+
+Because admins are the only way new users get provisioned, the first admin can't come from the app itself. A one-shot **seed migration** reads an `INITIAL_ADMIN_EMAIL` environment variable and inserts a row with `role = admin`, `is_active = true`, on deploys where the `users` table is empty. On non-empty deploys the seed is a no-op. See [architecture.md](architecture.md) for the env var.
 
 ## restaurants
 
-| column        | type          | notes                                     |
-|---------------|---------------|-------------------------------------------|
-| id            | uuid (pk)     |                                           |
-| name          | text          |                                           |
-| doordash_url  | text          | optional                                  |
-| notes         | text          | optional free text                        |
-| is_active     | bool          | hide from future polls without deleting   |
-| created_at    | timestamptz   |                                           |
+| column       | type          | notes                                     |
+|--------------|---------------|-------------------------------------------|
+| id           | uuid (pk)     |                                           |
+| name         | text          |                                           |
+| doordash_url | text          | optional                                  |
+| notes        | text          | optional free text                        |
+| is_active    | bool          | hide from future polls without deleting   |
+| created_at   | timestamptz   |                                           |
 
 Restaurants are defined once and reused across templates.
 
@@ -37,42 +44,73 @@ A poll template is a recurring "lunch group": a configured set of restaurants, a
 | id          | uuid (pk)   |                                                        |
 | name        | text        | e.g. "Regular", "Healthy food"                         |
 | description | text        | optional                                               |
-| schedule    | jsonb       | days of week, open time, close time, timezone          |
+| schedule    | jsonb       | see shape below                                        |
 | is_active   | bool        | pause a template without deleting                      |
 | created_at  | timestamptz |                                                        |
 
+`schedule` shape:
+
+```json
+{
+  "days_of_week": [1, 2, 3, 4, 5],
+  "opens_at_local": "10:00",
+  "closes_at_local": "11:30",
+  "timezone": "America/Los_Angeles"
+}
+```
+
+`days_of_week` uses ISO numbering (1 = Monday ... 7 = Sunday). `opens_at_local` and `closes_at_local` are wall-clock times in `timezone`.
+
 ## template_restaurants
 
-Join table — many-to-many between templates and restaurants.
+Many-to-many between templates and restaurants. **Carries the rolling-credit balance** for a restaurant within a template — each template is an independent "lunch world".
 
-| column        | type      | notes                             |
-|---------------|-----------|-----------------------------------|
-| template_id   | uuid (fk) |                                   |
-| restaurant_id | uuid (fk) |                                   |
-| is_active     | bool      | hide this option in future polls  |
+| column              | type        | notes                                     |
+|---------------------|-------------|-------------------------------------------|
+| template_id         | uuid (fk)   |                                           |
+| restaurant_id       | uuid (fk)   |                                           |
+| accumulated_credits | numeric     | default 0; updated at poll finalization   |
+| is_active           | bool        | hide this option in future polls          |
+| created_at          | timestamptz |                                           |
 
-Primary key: `(template_id, restaurant_id)`.
+Primary key: `(template_id, restaurant_id)`. New rows start at 0.
+
+Admin "remove a restaurant from this template" is a **soft deactivate** (`is_active = false`) — the row stays, the balance is preserved, and re-activating later restores the same balance. Hard deletion of the row is not exposed in the admin UI; if done directly against the DB, the balance is lost and a subsequent re-add starts at 0.
 
 ## polls
 
-A concrete instance of a template on a given day.
+A concrete instance of a template for a given local date.
 
-| column         | type                        | notes                                |
-|----------------|-----------------------------|--------------------------------------|
-| id             | uuid (pk)                   |                                      |
-| template_id    | uuid (fk)                   |                                      |
-| scheduled_date | date                        | the day this poll belongs to         |
-| opens_at       | timestamptz                 |                                      |
-| closes_at      | timestamptz                 |                                      |
-| status         | text                        | `scheduled` / `open` / `closed`      |
-| winner_id      | uuid (fk → restaurants)     | null until closed                    |
-| created_at     | timestamptz                 |                                      |
+| column              | type                    | notes                                                   |
+|---------------------|-------------------------|---------------------------------------------------------|
+| id                  | uuid (pk)               |                                                         |
+| template_id         | uuid (fk)               |                                                         |
+| scheduled_date      | date                    | local date in the template's timezone                   |
+| opens_at            | timestamptz             |                                                         |
+| closes_at           | timestamptz             |                                                         |
+| finalized_at        | timestamptz             | nullable; set when winner + credits computed            |
+| cancelled_at        | timestamptz             | nullable                                                |
+| cancellation_reason | text                    | nullable; `no_votes` or `admin`                         |
+| cancelled_by        | uuid (fk → users)       | nullable; set when `cancellation_reason = 'admin'`      |
+| winner_id           | uuid (fk → restaurants) | nullable                                                |
+| created_at          | timestamptz             |                                                         |
 
-Each poll has its own dedicated URL (`/polls/:id`), which renders the view appropriate to the poll's current status.
+Constraints:
+- **Partial unique** index on `(template_id, scheduled_date) WHERE cancelled_at IS NULL` — makes lazy instantiation safe under concurrency while still allowing a new poll to be created for a date whose previous poll was cancelled.
+- `CHECK (finalized_at IS NULL OR cancelled_at IS NULL)` — a poll cannot be both finalized and cancelled.
+
+`opens_at` and `closes_at` are **materialized from the template's `schedule` at instantiation time** and are immutable on the poll row thereafter. If an admin edits the template's schedule, only **future** instantiations see the change — historical polls keep the timestamps they were created with. This is what keeps `/history` and `/polls/:id` faithful after a schedule change.
+
+Each poll has its own dedicated URL (`/polls/:id`). Poll **status is derived**, not stored:
+- `cancelled_at` set → **cancelled**
+- `finalized_at` set → **closed**
+- `now < opens_at` → **scheduled**
+- `opens_at ≤ now < closes_at` → **open**
+- `now ≥ closes_at` and neither finalized nor cancelled → **pending close** (any read triggers lazy finalization or auto-cancellation — see [polls.md](polls.md))
 
 ## poll_options
 
-Snapshot of which restaurants were in play for that specific poll. Lets templates change their roster without rewriting history.
+Snapshot of which restaurants were on offer in that specific poll. **Materialized at poll instantiation** from the template's currently-active restaurants and **frozen on the poll thereafter** — subsequent roster changes on the template do not alter the ballot of an already-instantiated poll.
 
 | column        | type      | notes |
 |---------------|-----------|-------|
@@ -83,61 +121,62 @@ Primary key: `(poll_id, restaurant_id)`.
 
 ## votes
 
-One row per (user, poll, restaurant) pick.
+One row per user selection in a poll. During the open window, users add and remove rows freely to edit their picks.
 
-| column        | type        | notes                                   |
-|---------------|-------------|-----------------------------------------|
-| poll_id       | uuid (fk)   |                                         |
-| user_id       | uuid (fk)   |                                         |
-| restaurant_id | uuid (fk)   |                                         |
-| weight        | numeric     | credit amount allocated to this pick    |
-| created_at    | timestamptz |                                         |
+| column         | type        | notes                                      |
+|----------------|-------------|--------------------------------------------|
+| poll_id        | uuid (fk)   |                                            |
+| user_id        | uuid (fk)   |                                            |
+| restaurant_id  | uuid (fk)   |                                            |
+| scheduled_date | date        | denormalized from the poll for enforcement |
+| created_at     | timestamptz |                                            |
 
 Primary key: `(poll_id, user_id, restaurant_id)`.
 
-A user can only cast votes in **one** poll per `scheduled_date`, enforced in the write path.
+No `weight` column — at finalization we compute each user's per-pick weight as `1 / (their pick count in this poll)` and persist the result into `restaurant_credit_events`.
 
-## credits
+## daily_participation
 
-Rolling credit balance per user per template.
+Locks a user to one template's poll per local date. Written on the user's first vote of the day; used to reject subsequent votes for any other template's poll on the same `scheduled_date`.
 
-| column      | type        | notes                   |
-|-------------|-------------|-------------------------|
-| user_id     | uuid (fk)   |                         |
-| template_id | uuid (fk)   |                         |
-| balance     | numeric     | accumulated rollover    |
-| updated_at  | timestamptz |                         |
+| column         | type        | notes |
+|----------------|-------------|-------|
+| user_id        | uuid (fk)   |       |
+| scheduled_date | date        |       |
+| template_id    | uuid (fk)   |       |
+| first_voted_at | timestamptz |       |
 
-Primary key: `(user_id, template_id)`.
+Primary key: `(user_id, scheduled_date)`.
 
-How balances move on poll open/close is governed by the rolling-credit policy — **TBD**, see [polls.md](polls.md).
+The lock is **sticky** — unpicking every restaurant does not release it. If that turns out to be annoying in practice we can relax the rule later.
 
-## credit_events
+## restaurant_credit_events
 
-Append-only audit of every credit movement. Useful both for debugging the policy and for the user-facing "where did my credits go" view.
+Append-only log of every accumulated-credit movement, keyed on `(template, restaurant)`. Powers the leaderboard history view and debugging the algorithm.
 
-| column      | type        | notes                                    |
-|-------------|-------------|------------------------------------------|
-| id          | uuid (pk)   |                                          |
-| user_id     | uuid (fk)   |                                          |
-| template_id | uuid (fk)   |                                          |
-| poll_id     | uuid (fk)   | nullable — e.g. for daily grants         |
-| delta       | numeric     | positive or negative                     |
-| reason      | text        | `daily_grant`, `spent`, `refund`, ...    |
-| created_at  | timestamptz |                                          |
+| column        | type        | notes                                                                        |
+|---------------|-------------|------------------------------------------------------------------------------|
+| id            | uuid (pk)   |                                                                              |
+| seq           | bigserial   | monotonic ordering, independent of `created_at` resolution                   |
+| template_id   | uuid (fk)   |                                                                              |
+| restaurant_id | uuid (fk)   |                                                                              |
+| poll_id       | uuid (fk)   | nullable; null for admin adjustments and future decay sweeps                 |
+| delta         | numeric     | signed                                                                       |
+| reason        | text        | CHECK in (`poll_accumulation`, `winner_reset`, `admin_adjustment`, `decay`)  |
+| created_at    | timestamptz |                                                                              |
 
 ## api_keys
 
 Each user (including admins) can generate their own API keys.
 
-| column       | type        | notes                    |
-|--------------|-------------|--------------------------|
-| id           | uuid (pk)   |                          |
-| user_id      | uuid (fk)   |                          |
-| name         | text        | human label              |
-| token_hash   | text        | we store only a hash     |
-| last_used_at | timestamptz | nullable                 |
-| revoked_at   | timestamptz | nullable                 |
-| created_at   | timestamptz |                          |
+| column       | type        | notes                |
+|--------------|-------------|----------------------|
+| id           | uuid (pk)   |                      |
+| user_id      | uuid (fk)   |                      |
+| name         | text        | human label          |
+| token_hash   | text        | we store only a hash |
+| last_used_at | timestamptz | nullable             |
+| revoked_at   | timestamptz | nullable             |
+| created_at   | timestamptz |                      |
 
-API requests send `Authorization: Bearer <token>`. Permissions follow the owning user's `role`: admin keys can call admin endpoints, regular user keys cannot.
+API requests send `Authorization: Bearer <token>`. Permissions follow the owning user's **current** `role` — see [roadmap.md](roadmap.md) for known implications.

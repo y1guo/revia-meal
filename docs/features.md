@@ -6,28 +6,32 @@ All routes require login unless noted.
 - **`/login`** — Google sign-in. If the authenticated email is not in the `users` allowlist or is inactive, the user sees a "not authorized" screen and is signed out.
 
 ## Signed-in user pages
-- **`/`** — dashboard. Shows today's active polls across all templates (one card per template running today). Each card shows current status and links to the poll page.
-- **`/polls/:id`** — the dedicated page for a specific poll. Renders one of three views based on status:
-  - **Not started** — template info, scheduled open time, restaurant list, and the user's current rolling credits for that template.
-  - **Ongoing** — the voting UI. The user selects any subset of restaurants; live preview shows weight per pick as `(daily_credits + rolled_credits) / picks_count`.
-  - **Ended** — results view. Shows winner, full ranking, per-restaurant tallies, and the diff of the user's credit balance after this poll.
-- **`/history`** — list of past polls, filterable by template and date. Each row links to the poll's page.
-- **`/credits`** — current user's rolling-credit balance in each template, plus a credit-event history.
+- **`/`** — dashboard. Shows today's polls across all active templates (one card per template running today), each in its current state.
+- **`/polls/:id`** — the dedicated page for a specific poll. Renders one of four views based on derived status:
+  - **Scheduled** — template info, scheduled open time, restaurant list.
+  - **Open** — voting UI. The user adds and removes picks freely; the live preview shows the per-pick weight as `1 / picks_count`. If the user has already participated in another template's poll for this `scheduled_date`, the voting UI is disabled with a clear message pointing at the other poll.
+  - **Closed** — results view. Winner, full ranking by this poll's contribution, and per-restaurant `accumulated_credits` before and after the poll.
+  - **Cancelled** — clearly labeled, with the reason (`no_votes`, or `admin` with the cancelling user shown).
+- **`/history`** — list of past polls (both closed and cancelled), filterable by template and date. Each row links to the poll's page.
+- **`/leaderboard`** — per-template restaurant leaderboard showing current `accumulated_credits`, plus a timeline of `restaurant_credit_events`. This is the "current rolling-credit stats" view.
 - **`/settings`** — display name, manage API keys (create / revoke), sign out.
 
 ## Admin pages
-- **`/admin/users`** — list, add, deactivate, change role, and delete allowlist entries.
+- **`/admin/users`** — list, add, deactivate, change role, delete allowlist entries.
 - **`/admin/restaurants`** — CRUD on the restaurant catalog.
 - **`/admin/templates`** — CRUD on poll templates: name, schedule, assigned restaurants (pulled from the catalog).
-- **`/admin/polls`** (optional) — view scheduled / upcoming poll instances; re-instantiate manually if needed.
+- **`/admin/polls`** — list upcoming and recent poll instances. Supports **cancel** on any poll in `scheduled` or `open` state (records `cancelled_by`).
 
 ## Access control
-- All non-auth routes require a valid session with `is_active = true`.
+- All non-auth routes require a valid session for a user that is currently `is_active = true`.
 - `/admin/*` additionally require `role = admin`.
-- Vote write path enforces: (a) the poll is currently `open`, and (b) the user has not already voted in a *different* template's poll for that `scheduled_date`.
+- Vote write path enforces: (a) the poll is currently `open`, and (b) the user's `daily_participation` row for this `scheduled_date`, if one exists, points to this poll's template.
 
-## Poll instantiation
+## Poll lifecycle (summary)
 
-Polls are instantiated lazily by the server: whenever an active template has no poll row for today and something touches the day's data (dashboard load, history load, API poll-link fetch, etc.), the server creates the poll row. This keeps behavior correct without relying on an external scheduler.
+See [polls.md](polls.md) for the full spec. In short:
 
-There is no backfill for days the service was offline — the history reflects whatever was actually instantiated.
+- **Lazy instantiation.** Any request that needs "today's poll" for an active template creates the row if no poll (cancelled or otherwise) exists yet for that date. The partial unique index on `(template_id, scheduled_date) WHERE cancelled_at IS NULL` makes concurrent creates safe. Cancelled polls are **not** auto-resurrected.
+- **Lazy finalization.** The first request to touch a poll after `closes_at` either finalizes it (winner + credit movements in one transaction) or auto-cancels it if there are no votes.
+- **Cancellation.** Admins can cancel any `scheduled` or `open` poll from `/admin/polls`. Cancelled polls move no credits.
+- **No backfill** for days the service was offline.

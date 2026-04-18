@@ -5,17 +5,18 @@ Automates the daily lunch-order workflow for the HeyRevia US office: collect vot
 ## Key ideas
 
 - **Poll templates** group a set of restaurants with a recurring schedule. Each template instantiates a fresh poll every day it is scheduled to run. The office's "regular" and "healthy food" groups are two templates.
-- **Rolling voting credits.** Each user gets a fixed amount of voting power per day, distributed evenly across every restaurant they picked in a poll. **Un-winning votes are not wasted** — they roll forward so that minority tastes eventually get a turn. The exact credit-flow policy is deliberately not yet designed; see [docs/polls.md](docs/polls.md).
-- **One template per user per day.** A user only participates in one template's poll on any given day. Rolling credits are tracked independently per template.
+- **Rolling credits on restaurants.** Each user has 1 voting credit per poll, split evenly across the restaurants they pick. At close, each restaurant's share is added to that restaurant's accumulated balance **within the template**. The highest total wins; the winner's balance is reduced (exact rule deferred); everyone else's balance rolls forward — so options that keep almost-winning eventually win. See [docs/polls.md](docs/polls.md).
+- **One template per user per day.** A user only participates in one template's poll on any given day. Accumulated credits live per `(template, restaurant)`, so the "regular" and "healthy" worlds are fully independent.
 - **Allowlisted access.** Only emails an admin has pre-provisioned can sign in.
 
 ## Features (MVP)
 
 - Google sign-in, restricted to the admin-provisioned allowlist
-- Per-poll page with three states: not-started / ongoing / ended
+- Per-poll page with four states: scheduled / open / closed / cancelled
+- Polls auto-cancel at close time if no one voted; admins can cancel a scheduled or open poll manually
 - Dashboard of today's active polls across all templates
-- History page listing every instantiated poll
-- `/credits` page showing current rolling-credit balances per template
+- History page listing every instantiated poll (closed and cancelled)
+- `/leaderboard` page showing per-template restaurant balances and credit-event history
 - User settings with per-user API key generation
 - Admin pages: manage users/roles, restaurants, and poll templates
 - External API (MVP, admin-only): fetch today's poll links + poll results — intended for a Slack cron
