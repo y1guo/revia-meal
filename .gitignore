@@ -45,3 +45,5 @@ next-env.d.ts
 # coding agents
 /.agents
 /.claude
+/.mcp.json
+/.playwright-mcp
