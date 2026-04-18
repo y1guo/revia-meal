@@ -1,12 +1,20 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
-import LoginForm from './login-form'
+import { createAdminClient } from '@/lib/supabase/admin'
+import LoginForm, { type DevUser } from './login-form'
 
 function safeNext(raw: string | undefined): string {
     if (!raw) return '/'
     if (!raw.startsWith('/') || raw.startsWith('//')) return '/'
     return raw
+}
+
+function devBypassEnabled(): boolean {
+    return (
+        process.env.NODE_ENV !== 'production' &&
+        process.env.DEV_AUTH_BYPASS === 'true'
+    )
 }
 
 export default async function LoginPage({
@@ -24,9 +32,8 @@ export default async function LoginPage({
         redirect(next)
     }
 
-    // Otherwise: if there's a Supabase session but no valid active app user,
-    // clear it so the user can cleanly sign in again. Surface a distinct
-    // message if the cause was deactivation (vs. allowlist removal).
+    // Stale session for a deactivated or unknown user: clear it and surface a
+    // distinct message when the cause was deactivation.
     let errorOverride: string | undefined
     if (appUser && !appUser.is_active) {
         errorOverride = 'deactivated'
@@ -40,5 +47,23 @@ export default async function LoginPage({
         await supabase.auth.signOut()
     }
 
-    return <LoginForm next={next} error={errorOverride ?? params.error} />
+    // Only fetched when DEV_AUTH_BYPASS is on — never leaks to production.
+    let devUsers: DevUser[] | null = null
+    if (devBypassEnabled()) {
+        const admin = createAdminClient()
+        const { data } = await admin
+            .from('users')
+            .select('email, display_name, role')
+            .eq('is_active', true)
+            .order('email')
+        devUsers = (data ?? []) as DevUser[]
+    }
+
+    return (
+        <LoginForm
+            next={next}
+            error={errorOverride ?? params.error}
+            devUsers={devUsers}
+        />
+    )
 }

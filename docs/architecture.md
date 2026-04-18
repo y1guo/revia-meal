@@ -62,6 +62,10 @@ Google OAuth is configured inside Supabase, not in the app's environment. One-ti
 
 The app itself never touches Google credentials; it calls `supabase.auth.signInWithOAuth({ provider: 'google' })` and lets Supabase handle the OAuth dance.
 
+### Bypassing Google in local dev
+
+For testing from browsers that aren't signed into Google, set `DEV_AUTH_BYPASS=true` in `.env.local`. The login page gains a "Dev sign-in" section listing every allowlisted active user; clicking one mints a Supabase session for that user via `auth.admin.generateLink({ type: 'magiclink' })` + `auth.verifyOtp`. The flag is hard-gated by `NODE_ENV !== 'production'`, so it has no effect if it leaks into a Vercel deploy. Allowlist + `is_active` are still enforced — the bypass skips Google, not our auth checks.
+
 ## Deployment
 
 - `main` auto-deploys to Vercel production.
