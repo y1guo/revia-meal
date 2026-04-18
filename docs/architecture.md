@@ -46,7 +46,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+INITIAL_ADMIN_EMAIL=
 ```
+
+`INITIAL_ADMIN_EMAIL` is used **only** by the seed migration that bootstraps the first admin when the `users` table is empty. Once at least one admin exists, the value is ignored — see [data-model.md](data-model.md) for details.
 
 ## Deployment
 
