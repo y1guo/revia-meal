@@ -19,6 +19,7 @@ export default async function AdminLayout({
                 <Link href="/admin/users">Users</Link>
                 <Link href="/admin/restaurants">Restaurants</Link>
                 <Link href="/admin/templates">Templates</Link>
+                <Link href="/admin/polls">Polls</Link>
                 <span className="ml-auto text-neutral-500">
                     {user.display_name ?? user.email}
                 </span>

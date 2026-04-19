@@ -28,6 +28,12 @@ export default function AdminHome() {
                     </Link>{' '}
                     — recurring polls. Configure schedule + assigned restaurants per template.
                 </li>
+                <li>
+                    <Link href="/admin/polls" className="text-blue-600 underline">
+                        Polls
+                    </Link>{' '}
+                    — past and upcoming poll instances. Cancel any poll to unwind its credit effects.
+                </li>
             </ul>
         </main>
     )

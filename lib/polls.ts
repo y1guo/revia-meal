@@ -435,3 +435,56 @@ export async function finalizePoll(pollId: string): Promise<FinalizeResult> {
 
     return { status: 'finalized', winnerId: winner.restaurant_id }
 }
+
+export type CancelResult = { status: 'ok' } | { status: 'noop' }
+
+/**
+ * Admin-cancel a poll. Works on any non-cancelled state:
+ *   - scheduled: just marks cancelled; no votes to unwind
+ *   - open: marks cancelled; votes stay in place but are excluded from
+ *     banking queries via the poll.cancelled_at join filter
+ *   - closed (finalized): marks cancelled, clears finalized_at/winner_id,
+ *     and un-exercises any votes that this poll had exercised so those
+ *     users' banked credits come back
+ *
+ * Always deletes daily_participation rows for (template, scheduled_date)
+ * so affected users can participate in a re-instantiated poll.
+ *
+ * Race safety: the UPDATE requires cancelled_at IS NULL, so only one
+ * concurrent canceller ever runs the unwind.
+ */
+export async function cancelPoll(
+    pollId: string,
+    adminUserId: string,
+): Promise<CancelResult> {
+    const admin = createAdminClient()
+
+    const { data: claimed } = await admin
+        .from('polls')
+        .update({
+            cancelled_at: new Date().toISOString(),
+            cancellation_reason: 'admin',
+            cancelled_by: adminUserId,
+            finalized_at: null,
+            winner_id: null,
+        })
+        .eq('id', pollId)
+        .is('cancelled_at', null)
+        .select('id, template_id, scheduled_date')
+        .maybeSingle()
+
+    if (!claimed) return { status: 'noop' }
+
+    await admin
+        .from('votes')
+        .update({ exercised_at: null, exercised_poll_id: null })
+        .eq('exercised_poll_id', pollId)
+
+    await admin
+        .from('daily_participation')
+        .delete()
+        .eq('template_id', claimed.template_id)
+        .eq('scheduled_date', claimed.scheduled_date)
+
+    return { status: 'ok' }
+}
