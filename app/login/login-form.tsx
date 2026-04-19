@@ -1,6 +1,11 @@
 'use client'
 
+import { AlertCircle } from 'lucide-react'
 import { useState } from 'react'
+import { Brand } from '@/components/shell/Brand'
+import { Button } from '@/components/ui/Button'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { cn } from '@/lib/cn'
 import { createClient } from '@/lib/supabase/client'
 import { devSignIn } from './actions'
 
@@ -35,52 +40,93 @@ export default function LoginForm({
 
     const message =
         error === 'not_authorized'
-            ? "Your email isn't on the allowlist. Ask an admin to add you."
+            ? "This email isn't on the office allowlist. Ask an admin if you think that's a mistake."
             : error === 'deactivated'
-              ? 'Your account has been deactivated. Ask an admin to re-enable it.'
+              ? 'Your account is deactivated. Reach out to an admin to re-enable it.'
               : error
-                ? 'Sign-in failed. Please try again.'
+                ? 'Something went wrong with Google sign-in. Try again.'
                 : null
 
     return (
-        <main className="min-h-screen flex items-center justify-center p-8">
-            <div className="w-full max-w-sm space-y-6">
-                <div className="space-y-1">
-                    <h1 className="text-2xl font-semibold">Sign in</h1>
-                    <p className="text-sm text-neutral-500">
-                        revia-meal — HeyRevia lunch polls
+        <main className="relative flex flex-1 items-center justify-center p-4">
+            <div className="absolute top-4 right-4">
+                <ThemeToggle size="sm" iconsOnly />
+            </div>
+            <div className="w-full max-w-[400px] space-y-6">
+                <div className="flex justify-center">
+                    <Brand href="#" />
+                </div>
+                {/* TODO(illustration): replace with a Storyset "Food & Drink"
+                    asset per docs/design/pages.md §/login. */}
+                <div
+                    className={cn(
+                        'mx-auto flex h-[160px] w-[160px] items-center justify-center',
+                        'rounded-full bg-[color:var(--surface-raised)]',
+                        'text-[3rem]',
+                    )}
+                    aria-hidden="true"
+                >
+                    🍱
+                </div>
+                <div className="space-y-2 text-center">
+                    <h1 className="font-display font-medium text-[1.25rem] text-[color:var(--text-primary)]">
+                        Lunch, decided together.
+                    </h1>
+                    <p className="text-[0.875rem] text-[color:var(--text-secondary)]">
+                        Only emails on the office allowlist can sign in.
                     </p>
                 </div>
                 {message && (
-                    <p className="text-sm text-red-500" role="alert">
-                        {message}
-                    </p>
+                    <div
+                        role="alert"
+                        className={cn(
+                            'flex items-start gap-2 rounded-[var(--radius-md)]',
+                            'border border-tomato-500/30 bg-tomato-500/5',
+                            'px-4 py-3',
+                        )}
+                    >
+                        <AlertCircle
+                            size={16}
+                            strokeWidth={1.75}
+                            className="mt-0.5 shrink-0 text-tomato-500"
+                            aria-hidden="true"
+                        />
+                        <p className="text-[0.8125rem] text-[color:var(--text-primary)]">
+                            {message}
+                        </p>
+                    </div>
                 )}
-                <button
-                    type="button"
+                <Button
+                    variant="primary"
+                    size="lg"
                     onClick={signInWithGoogle}
-                    disabled={loading}
-                    className="w-full rounded-md bg-black text-white px-4 py-2 font-medium hover:bg-neutral-800 disabled:opacity-50"
+                    loading={loading}
+                    className="w-full"
                 >
-                    {loading ? 'Redirecting…' : 'Continue with Google'}
-                </button>
+                    {loading ? 'Redirecting…' : 'Sign in with Google'}
+                </Button>
 
                 {devUsers && (
-                    <div className="border-t border-neutral-200 dark:border-neutral-800 pt-4 space-y-3">
+                    <div className="space-y-3 border-t border-[color:var(--border-subtle)] pt-4">
                         <div>
-                            <h2 className="text-sm font-medium">Dev sign-in</h2>
-                            <p className="text-xs text-neutral-500">
-                                Enabled by <code>DEV_AUTH_BYPASS=true</code>. Bypasses
-                                Google and mints a Supabase session directly. Disabled
-                                automatically when <code>NODE_ENV=production</code>.
+                            <h2 className="text-[0.875rem] font-medium text-[color:var(--text-primary)]">
+                                Dev sign-in
+                            </h2>
+                            <p className="text-[0.75rem] text-[color:var(--text-secondary)]">
+                                Enabled by{' '}
+                                <code className="font-mono">DEV_AUTH_BYPASS=true</code>
+                                . Bypasses Google and mints a Supabase session
+                                directly. Disabled when{' '}
+                                <code className="font-mono">NODE_ENV=production</code>
+                                .
                             </p>
                         </div>
                         {devUsers.length === 0 ? (
-                            <p className="text-xs text-neutral-500">
+                            <p className="text-[0.75rem] text-[color:var(--text-secondary)]">
                                 No active allowlisted users.
                             </p>
                         ) : (
-                            <ul className="space-y-2">
+                            <ul className="space-y-1.5">
                                 {devUsers.map((u) => (
                                     <li key={u.email}>
                                         <form action={devSignIn}>
@@ -96,18 +142,24 @@ export default function LoginForm({
                                             />
                                             <button
                                                 type="submit"
-                                                className="w-full rounded-md border border-neutral-300 dark:border-neutral-700 px-3 py-2 text-sm text-left hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                                                className={cn(
+                                                    'w-full text-left',
+                                                    'rounded-[var(--radius-md)] border border-[color:var(--border-subtle)]',
+                                                    'bg-[color:var(--surface-raised)] hover:bg-[color:var(--surface-sunken)]',
+                                                    'px-3 py-2',
+                                                    'transition-colors duration-150',
+                                                )}
                                             >
-                                                <div>
+                                                <div className="text-[0.875rem] text-[color:var(--text-primary)]">
                                                     {u.display_name ?? u.email}
                                                     {u.role === 'admin' && (
-                                                        <span className="ml-1 text-xs text-neutral-500">
+                                                        <span className="ml-1.5 text-[0.75rem] text-[color:var(--text-secondary)]">
                                                             (admin)
                                                         </span>
                                                     )}
                                                 </div>
                                                 {u.display_name && (
-                                                    <div className="text-xs text-neutral-500">
+                                                    <div className="text-[0.75rem] text-[color:var(--text-secondary)]">
                                                         {u.email}
                                                     </div>
                                                 )}
