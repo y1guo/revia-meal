@@ -1,32 +1,51 @@
 'use client'
 
+import { useState } from 'react'
+import { Button } from '@/components/ui/Button'
+import { DestructiveConfirmModal } from '@/components/ui/DestructiveConfirmModal'
 import { cancelPollAction } from './actions'
 
 export default function CancelButton({
     pollId,
     label,
+    isClosed,
 }: {
     pollId: string
     label: string
+    isClosed?: boolean
 }) {
+    const [open, setOpen] = useState(false)
+
+    const handleConfirm = async () => {
+        const fd = new FormData()
+        fd.append('poll_id', pollId)
+        await cancelPollAction(fd)
+    }
+
     return (
-        <form action={cancelPollAction}>
-            <input type="hidden" name="poll_id" value={pollId} />
-            <button
-                type="submit"
-                onClick={(e) => {
-                    if (
-                        !window.confirm(
-                            `Cancel this poll?\n\n${label}\n\nAny exercised credits come back, participation locks are released, and the poll is marked cancelled. The row itself is preserved.`,
-                        )
-                    ) {
-                        e.preventDefault()
-                    }
-                }}
-                className="text-xs rounded-md border border-red-300 text-red-700 dark:border-red-800 dark:text-red-400 px-2 py-1 hover:bg-red-50 dark:hover:bg-red-950"
+        <>
+            <Button
+                variant="ghost-destructive"
+                size="sm"
+                onClick={() => setOpen(true)}
             >
                 Cancel
-            </button>
-        </form>
+            </Button>
+            <DestructiveConfirmModal
+                open={open}
+                onOpenChange={setOpen}
+                title="Cancel this poll?"
+                target={label}
+                warning="This can't be undone."
+                destructiveLabel="Cancel poll"
+                onConfirm={handleConfirm}
+            >
+                <p>
+                    {isClosed
+                        ? 'The winner will be voided and every exercised credit will return to its voter. Use this only if the result is genuinely wrong.'
+                        : 'Voting stops immediately. Any credits consumed today come back, participation locks are released, and the poll is marked cancelled. The row itself is preserved.'}
+                </p>
+            </DestructiveConfirmModal>
+        </>
     )
 }

@@ -1,6 +1,12 @@
 import Link from 'next/link'
+import { PageHeader } from '@/components/shell/PageHeader'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { StatusBadge } from '@/components/ui/StatusBadge'
+import { cn } from '@/lib/cn'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { getPollStatus, type PollStatus } from '@/lib/polls'
+import { getPollStatus } from '@/lib/polls'
 import CancelButton from './cancel-button'
 
 type SearchParams = Promise<{
@@ -11,16 +17,6 @@ type SearchParams = Promise<{
     winner?: string
     participant?: string
 }>
-
-const STATUS_STYLES: Record<PollStatus, string> = {
-    scheduled:
-        'bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200',
-    open: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200',
-    pending_close:
-        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200',
-    closed: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200',
-    cancelled: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200',
-}
 
 function defaultRange(): { from: string; to: string } {
     const today = new Date()
@@ -49,14 +45,8 @@ export default async function AdminPollsPage({
     const admin = createAdminClient()
 
     const [templatesRes, restaurantsRes, usersRes] = await Promise.all([
-        admin
-            .from('poll_templates')
-            .select('id, name')
-            .order('name'),
-        admin
-            .from('restaurants')
-            .select('id, name')
-            .order('name'),
+        admin.from('poll_templates').select('id, name').order('name'),
+        admin.from('restaurants').select('id, name').order('name'),
         admin
             .from('users')
             .select('id, display_name, email')
@@ -76,7 +66,6 @@ export default async function AdminPollsPage({
     if (templateFilter) pollsQuery = pollsQuery.eq('template_id', templateFilter)
     if (winnerFilter) pollsQuery = pollsQuery.eq('winner_id', winnerFilter)
 
-    // Participant filter: narrow to polls that user voted in.
     if (participantFilter) {
         const { data: pRows } = await admin
             .from('votes')
@@ -87,8 +76,6 @@ export default async function AdminPollsPage({
         const participantPollIds = Array.from(
             new Set((pRows ?? []).map((r) => r.poll_id as string)),
         )
-        // Sentinel UUID keeps the `.in()` filter well-formed when there are
-        // no matches, so PostgREST returns an empty list instead of erroring.
         pollsQuery = pollsQuery.in(
             'id',
             participantPollIds.length > 0
@@ -100,12 +87,10 @@ export default async function AdminPollsPage({
     const { data: pollsData } = await pollsQuery
     const allPolls = pollsData ?? []
 
-    // Apply status filter (derived from timestamps).
     const polls = statusFilter
         ? allPolls.filter((p) => getPollStatus(p) === statusFilter)
         : allPolls
 
-    // Per-poll voter count (unique users, since a ballot can pick multiple).
     const pollIds = polls.map((p) => p.id as string)
     const { data: voteRows } =
         pollIds.length > 0
@@ -144,108 +129,101 @@ export default async function AdminPollsPage({
     )
 
     return (
-        <main className="p-8 space-y-6 max-w-5xl">
-            <header className="space-y-1">
-                <h1 className="text-2xl font-semibold">Polls</h1>
-                <p className="text-sm text-neutral-500">
-                    All poll instances in range. Cancel any poll to unwind its
-                    credit effects — scheduled, open, or closed alike.
-                </p>
-            </header>
+        <>
+            <PageHeader
+                title="Polls"
+                subtitle="All poll instances in range. Cancel any poll to unwind its credit effects — scheduled, open, or closed alike."
+            />
 
-            <form className="flex flex-wrap items-end gap-3">
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">Template</span>
-                    <select
-                        name="template"
-                        defaultValue={templateFilter}
-                        className="border rounded-md px-2 py-1 bg-transparent min-w-32"
-                    >
-                        <option value="">All</option>
-                        {(templatesRes.data ?? []).map((t) => (
-                            <option key={t.id} value={t.id}>
-                                {t.name}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">From</span>
-                    <input
-                        type="date"
-                        name="from"
-                        defaultValue={from}
-                        className="border rounded-md px-2 py-1 bg-transparent"
-                    />
-                </label>
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">To</span>
-                    <input
-                        type="date"
-                        name="to"
-                        defaultValue={to}
-                        className="border rounded-md px-2 py-1 bg-transparent"
-                    />
-                </label>
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">Status</span>
-                    <select
-                        name="status"
-                        defaultValue={statusFilter}
-                        className="border rounded-md px-2 py-1 bg-transparent"
-                    >
-                        <option value="">All</option>
-                        <option value="scheduled">Scheduled</option>
-                        <option value="open">Open</option>
-                        <option value="pending_close">Pending close</option>
-                        <option value="closed">Closed</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                </label>
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">Winner</span>
-                    <select
-                        name="winner"
-                        defaultValue={winnerFilter}
-                        className="border rounded-md px-2 py-1 bg-transparent min-w-32"
-                    >
-                        <option value="">Any</option>
-                        {(restaurantsRes.data ?? []).map((r) => (
-                            <option key={r.id} value={r.id}>
-                                {r.name}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">Participant</span>
-                    <select
-                        name="participant"
-                        defaultValue={participantFilter}
-                        className="border rounded-md px-2 py-1 bg-transparent min-w-40"
-                    >
-                        <option value="">Anyone</option>
-                        {(usersRes.data ?? []).map((u) => (
-                            <option key={u.id} value={u.id}>
-                                {u.display_name || u.email}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <button
-                    type="submit"
-                    className="border rounded-md px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-900"
-                >
-                    Apply
-                </button>
-            </form>
+            <Card className="mb-6">
+                <form className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
+                    <FilterField label="Template">
+                        <AdminNativeSelect
+                            name="template"
+                            defaultValue={templateFilter}
+                        >
+                            <option value="">All</option>
+                            {(templatesRes.data ?? []).map((t) => (
+                                <option key={t.id} value={t.id}>
+                                    {t.name}
+                                </option>
+                            ))}
+                        </AdminNativeSelect>
+                    </FilterField>
+                    <FilterField label="From">
+                        <AdminNativeInput
+                            type="date"
+                            name="from"
+                            defaultValue={from}
+                        />
+                    </FilterField>
+                    <FilterField label="To">
+                        <AdminNativeInput
+                            type="date"
+                            name="to"
+                            defaultValue={to}
+                        />
+                    </FilterField>
+                    <FilterField label="Status">
+                        <AdminNativeSelect
+                            name="status"
+                            defaultValue={statusFilter}
+                        >
+                            <option value="">All</option>
+                            <option value="scheduled">Scheduled</option>
+                            <option value="open">Open</option>
+                            <option value="pending_close">Pending close</option>
+                            <option value="closed">Closed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </AdminNativeSelect>
+                    </FilterField>
+                    <FilterField label="Winner">
+                        <AdminNativeSelect
+                            name="winner"
+                            defaultValue={winnerFilter}
+                        >
+                            <option value="">Any</option>
+                            {(restaurantsRes.data ?? []).map((r) => (
+                                <option key={r.id} value={r.id}>
+                                    {r.name}
+                                </option>
+                            ))}
+                        </AdminNativeSelect>
+                    </FilterField>
+                    <FilterField label="Participant">
+                        <AdminNativeSelect
+                            name="participant"
+                            defaultValue={participantFilter}
+                        >
+                            <option value="">Anyone</option>
+                            {(usersRes.data ?? []).map((u) => (
+                                <option key={u.id} value={u.id}>
+                                    {u.display_name || u.email}
+                                </option>
+                            ))}
+                        </AdminNativeSelect>
+                    </FilterField>
+                    <div className="col-span-full flex items-center justify-end gap-2">
+                        <Link
+                            href="/admin/polls"
+                            className="text-[0.875rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] underline underline-offset-2"
+                        >
+                            Clear filters
+                        </Link>
+                        <Button type="submit" variant="primary">
+                            Apply
+                        </Button>
+                    </div>
+                </form>
+            </Card>
 
             {polls.length === 0 ? (
-                <p className="text-sm text-neutral-500">
-                    No polls match these filters.
-                </p>
+                <EmptyState
+                    title="No polls match these filters."
+                    body="Widen the date range or clear filters to see more."
+                />
             ) : (
-                <div className="border rounded-md divide-y">
+                <ul className="space-y-3">
                     {polls.map((p) => {
                         const status = getPollStatus(p)
                         const templateName =
@@ -258,65 +236,121 @@ export default async function AdminPollsPage({
                         const cancelledBy = p.cancelled_by
                             ? userMap.get(p.cancelled_by as string)
                             : null
-                        const voters = voterCountByPoll.get(p.id as string) ?? 0
+                        const voters =
+                            voterCountByPoll.get(p.id as string) ?? 0
+                        const dateLabel = formatDate(
+                            p.scheduled_date as string,
+                        )
                         return (
-                            <div
-                                key={p.id as string}
-                                className="p-4 flex items-center gap-4"
-                            >
-                                <div className="flex-1 min-w-0 space-y-1">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <Link
-                                            href={`/polls/${p.id}`}
-                                            className="font-medium underline"
-                                        >
-                                            {templateName}
-                                        </Link>
-                                        <span className="text-xs text-neutral-500 tabular-nums">
-                                            {formatDate(
-                                                p.scheduled_date as string,
+                            <li key={p.id as string}>
+                                <Card className="flex flex-wrap items-center gap-3">
+                                    <div className="flex-1 min-w-[200px] space-y-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <Link
+                                                href={`/polls/${p.id}`}
+                                                className="font-medium text-[color:var(--text-primary)] hover:text-[color:var(--accent-brand)] underline underline-offset-2 decoration-1"
+                                            >
+                                                {templateName}
+                                            </Link>
+                                            <span className="text-[0.8125rem] text-[color:var(--text-secondary)] tabular-nums">
+                                                {dateLabel}
+                                            </span>
+                                            <StatusBadge status={status} />
+                                        </div>
+                                        <div className="text-[0.8125rem] text-[color:var(--text-secondary)]">
+                                            {voters}{' '}
+                                            {voters === 1 ? 'voter' : 'voters'}
+                                            {winnerName &&
+                                                status === 'closed' && (
+                                                    <>
+                                                        {' '}· winner:{' '}
+                                                        <strong className="text-[color:var(--text-primary)]">
+                                                            {winnerName}
+                                                        </strong>
+                                                    </>
+                                                )}
+                                            {status === 'cancelled' && (
+                                                <>
+                                                    {' '}·{' '}
+                                                    {p.cancellation_reason ===
+                                                    'no_votes'
+                                                        ? 'no votes'
+                                                        : cancelledBy
+                                                          ? `by ${cancelledBy.display_name || cancelledBy.email}`
+                                                          : 'by admin'}
+                                                </>
                                             )}
-                                        </span>
-                                        <span
-                                            className={`text-xs rounded-full px-2 py-0.5 ${STATUS_STYLES[status]}`}
-                                        >
-                                            {status.replace('_', ' ')}
-                                        </span>
+                                        </div>
                                     </div>
-                                    <div className="text-xs text-neutral-500">
-                                        {voters}{' '}
-                                        {voters === 1 ? 'voter' : 'voters'}
-                                        {winnerName && status === 'closed' && (
-                                            <>
-                                                {' '}· winner:{' '}
-                                                <strong>{winnerName}</strong>
-                                            </>
-                                        )}
-                                        {status === 'cancelled' && (
-                                            <>
-                                                {' '}·{' '}
-                                                {p.cancellation_reason ===
-                                                'no_votes'
-                                                    ? 'no votes'
-                                                    : cancelledBy
-                                                      ? `by ${cancelledBy.display_name || cancelledBy.email}`
-                                                      : 'by admin'}
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                                {status !== 'cancelled' && (
-                                    <CancelButton
-                                        pollId={p.id as string}
-                                        label={`${templateName} — ${formatDate(p.scheduled_date as string)}`}
-                                    />
-                                )}
-                            </div>
+                                    {status !== 'cancelled' && (
+                                        <CancelButton
+                                            pollId={p.id as string}
+                                            label={`${templateName} — ${dateLabel}`}
+                                            isClosed={status === 'closed'}
+                                        />
+                                    )}
+                                </Card>
+                            </li>
                         )
                     })}
-                </div>
+                </ul>
             )}
-        </main>
+        </>
+    )
+}
+
+function FilterField({
+    label,
+    children,
+}: {
+    label: string
+    children: React.ReactNode
+}) {
+    return (
+        <label className="flex flex-col gap-1">
+            <span className="text-[0.75rem] font-medium text-[color:var(--text-secondary)]">
+                {label}
+            </span>
+            {children}
+        </label>
+    )
+}
+
+function AdminNativeSelect({
+    className,
+    ...rest
+}: React.SelectHTMLAttributes<HTMLSelectElement>) {
+    return (
+        <select
+            {...rest}
+            className={cn(
+                'h-9 px-2.5 rounded-[var(--radius-md)]',
+                'bg-[color:var(--surface-raised)]',
+                'border border-[color:var(--border-subtle)]',
+                'text-[0.875rem] text-[color:var(--text-primary)]',
+                'focus:border-[color:var(--accent-brand)]',
+                className,
+            )}
+        />
+    )
+}
+
+function AdminNativeInput({
+    className,
+    ...rest
+}: React.InputHTMLAttributes<HTMLInputElement>) {
+    return (
+        <input
+            {...rest}
+            className={cn(
+                'h-9 px-2.5 rounded-[var(--radius-md)]',
+                'bg-[color:var(--surface-raised)]',
+                'border border-[color:var(--border-subtle)]',
+                'text-[0.875rem] text-[color:var(--text-primary)]',
+                'focus:border-[color:var(--accent-brand)]',
+                className,
+            )}
+        />
     )
 }
 
