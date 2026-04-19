@@ -64,9 +64,11 @@ export function AvatarMenu({
                             <div className="text-[0.875rem] font-medium text-[color:var(--text-primary)] truncate">
                                 {displayName ?? email}
                             </div>
-                            <div className="text-[0.75rem] text-[color:var(--text-secondary)] truncate">
-                                {email}
-                            </div>
+                            {displayName && (
+                                <div className="text-[0.75rem] text-[color:var(--text-secondary)] truncate">
+                                    {email}
+                                </div>
+                            )}
                             {isAdmin && (
                                 <div className="mt-1.5">
                                     <Chip variant="accent">Admin</Chip>

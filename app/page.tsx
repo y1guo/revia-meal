@@ -1,98 +1,91 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { getCurrentUser } from '@/lib/auth'
-import { getTodaysDashboard, type PollStatus } from '@/lib/polls'
+import { AppShell } from '@/components/shell/AppShell'
+import { PageHeader } from '@/components/shell/PageHeader'
+import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { getCurrentUser } from '@/lib/auth'
+import { getTodaysDashboard, type PollStatus } from '@/lib/polls'
 import { signOut } from './actions'
+
+type PollEntry = Awaited<ReturnType<typeof getTodaysDashboard>>[number]
 
 export default async function Home() {
     const user = await getCurrentUser()
     if (!user || !user.is_active) redirect('/login')
 
     const entries = await getTodaysDashboard()
+    const todayLabel = new Date().toLocaleDateString(undefined, {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+    })
 
     return (
-        <main className="p-8 space-y-6 max-w-4xl">
-            <header className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-semibold">revia-meal</h1>
-                    <p className="text-sm text-neutral-500">
-                        Signed in as {user.display_name ?? user.email}
-                        {user.role === 'admin' ? ' (admin)' : ''}
-                    </p>
+        <AppShell user={user} signOutAction={signOut}>
+            <PageHeader title="Today's polls" subtitle={todayLabel} />
+            {entries.length === 0 ? (
+                <EmptyState
+                    title="Nothing on the menu today."
+                    body="No templates are scheduled for today. Ask an admin to activate one whose schedule includes today — or check back tomorrow."
+                />
+            ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                    {entries.map((entry) => (
+                        <PollCard key={entry.poll.id} entry={entry} />
+                    ))}
                 </div>
-                <div className="flex items-center gap-4 text-sm">
-                    <Link href="/people" className="underline">
-                        People
-                    </Link>
-                    <Link href="/history" className="underline">
-                        History
-                    </Link>
-                    <Link href="/docs" className="underline">
-                        Docs
-                    </Link>
-                    <Link href="/settings" className="underline">
-                        Settings
-                    </Link>
-                    {user.role === 'admin' && (
-                        <Link href="/admin" className="underline">
-                            Admin
-                        </Link>
-                    )}
-                    <form action={signOut}>
-                        <button type="submit" className="underline">
-                            Sign out
-                        </button>
-                    </form>
-                </div>
-            </header>
+            )}
+        </AppShell>
+    )
+}
 
-            <section className="space-y-3">
-                <h2 className="text-lg font-medium">Today&apos;s polls</h2>
-                {entries.length === 0 ? (
-                    <EmptyState
-                        title="Nothing on the menu today."
-                        body="No templates are scheduled for today. Ask an admin to activate one whose schedule includes today — or check back tomorrow."
-                    />
-                ) : (
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        {entries.map(({ template, poll, status }) => (
-                            <Link
-                                key={poll.id}
-                                href={`/polls/${poll.id}`}
-                                className="border rounded-md p-4 hover:bg-neutral-50 dark:hover:bg-neutral-900 space-y-2"
-                            >
-                                <div className="flex items-center justify-between gap-2">
-                                    <h3 className="font-medium">{template.name}</h3>
-                                    <StatusBadge status={status} />
-                                </div>
-                                {template.description && (
-                                    <p className="text-xs text-neutral-500">
-                                        {template.description}
-                                    </p>
-                                )}
-                                <p className="text-xs text-neutral-500">
-                                    {subtitle(status, poll)}
-                                </p>
-                            </Link>
-                        ))}
-                    </div>
+function PollCard({ entry }: { entry: PollEntry }) {
+    const { template, poll, status } = entry
+    return (
+        <Link href={`/polls/${poll.id}`} className="block">
+            <Card
+                interactive
+                className="h-full flex flex-col gap-2"
+            >
+                <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-display font-medium text-[1.125rem] text-[color:var(--text-primary)]">
+                        {template.name}
+                    </h3>
+                    <StatusBadge status={status} />
+                </div>
+                <p className="text-[0.8125rem] text-[color:var(--text-secondary)]">
+                    {subtitle(status, poll)}
+                </p>
+                {template.description && (
+                    <p className="text-[0.8125rem] text-[color:var(--text-tertiary)]">
+                        {template.description}
+                    </p>
                 )}
-            </section>
-        </main>
+            </Card>
+        </Link>
     )
 }
 
 function subtitle(
     status: PollStatus,
-    poll: { opens_at: string; closes_at: string; cancellation_reason: string | null },
+    poll: {
+        opens_at: string
+        closes_at: string
+        cancellation_reason: string | null
+    },
 ): string {
+    const now = Date.now()
     switch (status) {
-        case 'scheduled':
-            return `Opens ${formatTime(poll.opens_at)}`
-        case 'open':
-            return `Closes ${formatTime(poll.closes_at)}`
+        case 'scheduled': {
+            const opens = new Date(poll.opens_at)
+            return `${relativeFrom(opens.getTime() - now, 'future', 'Opens')} · ${formatTime(poll.opens_at)}`
+        }
+        case 'open': {
+            const closes = new Date(poll.closes_at)
+            return `${relativeFrom(closes.getTime() - now, 'future', 'Closes')} · ${formatTime(poll.closes_at)}`
+        }
         case 'pending_close':
             return 'Voting window ended — finalizing soon'
         case 'closed':
@@ -102,6 +95,26 @@ function subtitle(
                 ? 'Cancelled by admin'
                 : 'Cancelled (no votes)'
     }
+}
+
+function relativeFrom(
+    deltaMs: number,
+    direction: 'future' | 'past',
+    verb: string,
+): string {
+    const abs = Math.abs(deltaMs)
+    const minutes = Math.round(abs / 60_000)
+    const hours = Math.round(abs / 3_600_000)
+    if (direction === 'future') {
+        if (minutes < 1) return `${verb} shortly`
+        if (minutes < 60) return `${verb} in ${minutes}m`
+        if (hours < 24) return `${verb} in ${hours}h`
+        return `${verb} at`
+    }
+    if (minutes < 1) return `${verb} just now`
+    if (minutes < 60) return `${verb} ${minutes}m ago`
+    if (hours < 24) return `${verb} ${hours}h ago`
+    return `${verb}`
 }
 
 function formatTime(isoString: string): string {
