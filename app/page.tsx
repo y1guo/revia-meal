@@ -1,3 +1,4 @@
+import { UtensilsCrossed } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
@@ -34,6 +35,7 @@ export default async function Home() {
             <PageHeader title="Today's polls" subtitle={todayLabel} />
             {entries.length === 0 ? (
                 <EmptyState
+                    icon={UtensilsCrossed}
                     title="Nothing on the menu today."
                     body="No templates are scheduled for today. Ask an admin to activate one whose schedule includes today — or check back tomorrow."
                 />

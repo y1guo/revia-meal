@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, UtensilsCrossed } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
@@ -53,6 +53,18 @@ export default function LoginForm({
             </div>
             <div className="w-full max-w-[400px] space-y-6">
                 <div className="flex flex-col items-center gap-3">
+                    <div
+                        aria-hidden="true"
+                        className={cn(
+                            'flex items-center justify-center',
+                            'h-24 w-24 rounded-full mb-1',
+                            'bg-gradient-to-br from-[color:var(--accent-brand)]/20 to-[color:var(--accent-brand)]/5',
+                            'text-[color:var(--accent-brand)]',
+                            'shadow-[var(--shadow-card-rest)]',
+                        )}
+                    >
+                        <UtensilsCrossed size={44} strokeWidth={1.5} />
+                    </div>
                     {/* Wordmark ships as white-on-transparent. In light mode we
                         invert brightness to make it legible on cream. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}

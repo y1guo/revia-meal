@@ -1,3 +1,4 @@
+import { Coffee } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { signOut } from '@/app/actions'
@@ -174,6 +175,7 @@ export default async function PeoplePage({
 
             {userRows.length === 0 ? (
                 <EmptyState
+                    icon={Coffee}
                     title="Nothing brewing in this range."
                     body={`No votes recorded between ${from} and ${to}. Widen the range to see more.`}
                 />

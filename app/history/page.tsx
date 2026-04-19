@@ -1,3 +1,4 @@
+import { FilterX } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { signOut } from '@/app/actions'
@@ -208,6 +209,7 @@ export default async function HistoryPage({
 
             {polls.length === 0 ? (
                 <EmptyState
+                    icon={FilterX}
                     title="No polls match these filters."
                     body="Try widening the date range, or clear filters to start over."
                     action={

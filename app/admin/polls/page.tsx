@@ -1,3 +1,4 @@
+import { FilterX } from 'lucide-react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PageHeader } from '@/components/shell/PageHeader'
@@ -217,6 +218,7 @@ export default async function AdminPollsPage({
 
             {polls.length === 0 ? (
                 <EmptyState
+                    icon={FilterX}
                     title="No polls match these filters."
                     body="Widen the date range or clear filters to see more."
                 />
