@@ -68,7 +68,7 @@ export function FormField({
                 <p
                     id={errorId}
                     role="alert"
-                    className="text-[0.8125rem] text-tomato-500"
+                    className="text-[0.8125rem] text-danger-700 dark:text-danger-400"
                 >
                     {error}
                 </p>

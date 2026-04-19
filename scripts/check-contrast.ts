@@ -16,7 +16,6 @@ function hexToRgb(hex: string): Rgb {
     return { r: (v >> 16) & 255, g: (v >> 8) & 255, b: v & 255 }
 }
 
-/** Blend an rgba value with a solid base color. */
 function flattenAlpha(
     rgba: { r: number; g: number; b: number; a: number },
     base: Rgb,
@@ -43,67 +42,70 @@ function contrast(a: Rgb, b: Rgb): number {
     return (hi + 0.05) / (lo + 0.05)
 }
 
-// ---------- palette ----------
+// ---------- palette (Boba / Lime / Sunny refresh) ----------
 const LIGHT = {
     // surfaces
-    'surface-base': hexToRgb('#FBF7F1'),
-    'surface-raised': hexToRgb('#F3ECDF'),
-    'surface-sunken': hexToRgb('#E6DCC8'),
+    'surface-base': hexToRgb('#E6F8FA'), // frost-50
+    'surface-raised': hexToRgb('#F6FFFA'), // mint-50
+    'surface-sunken': hexToRgb('#E3F3EA'), // mint-100
 
     // text
-    'text-primary': hexToRgb('#1E1A15'),
-    'text-secondary': hexToRgb('#6B6054'),
-    'text-tertiary': hexToRgb('#7A6E5C'),
-    'text-on-accent': hexToRgb('#1E1A15'),
+    'text-primary': hexToRgb('#2E3A3C'), // slate-700
+    'text-secondary': hexToRgb('#4E5A5C'), // slate-600 (derived for AA)
+    'text-tertiary': hexToRgb('#6C7A7B'), // slate-500 (owner's grey; tertiary slot)
+    'text-on-accent': hexToRgb('#1F2A2C'), // slate-800
 
-    // brand
-    'accent-brand': hexToRgb('#E8A53C'),
-    'accent-brand-hover': hexToRgb('#D98C19'),
-    'link-fg': hexToRgb('#7A4D0A'),
-    'focus-ring': hexToRgb('#7A4D0A'),
-    'tomato-500': hexToRgb('#C54A3E'),
+    // brand + interaction
+    'accent-brand': hexToRgb('#33C5E0'), // boba-400
+    'accent-brand-hover': hexToRgb('#1EA8C4'), // boba-500
+    'link-fg': hexToRgb('#0F6E85'), // boba-700
+    'focus-ring': hexToRgb('#0F6E85'),
 
-    // status foregrounds (darkened to pass AA against tinted backgrounds)
-    'status-open-fg': hexToRgb('#4A6534'),
-    'status-pending-fg': hexToRgb('#6E4D10'),
-    'status-closed-fg': hexToRgb('#2C3F75'),
-    'status-cancelled-fg': hexToRgb('#8A2E24'),
-    'status-scheduled-fg': hexToRgb('#1E1A15'),
+    // danger foregrounds for button/chip
+    'danger-500': hexToRgb('#F44336'),
+    'danger-600': hexToRgb('#D32F2F'),
+
+    // status foregrounds (darker variants pass AA on tinted bg)
+    'status-scheduled-fg': hexToRgb('#2E3A3C'),
+    'status-open-fg': hexToRgb('#3A6A28'), // lime-800
+    'status-pending-fg': hexToRgb('#80611A'), // sunny-800
+    'status-closed-fg': hexToRgb('#0F6E85'), // boba-700
+    'status-cancelled-fg': hexToRgb('#A5291F'), // danger-700
 
     // banked
-    'banked-fg': hexToRgb('#7A4D0A'),
+    'banked-fg': hexToRgb('#80611A'), // sunny-800
 } as const
 
 const DARK = {
-    'surface-base': hexToRgb('#14110D'),
-    'surface-raised': hexToRgb('#1E1A15'),
-    'surface-sunken': hexToRgb('#29241D'),
+    'surface-base': hexToRgb('#1D2D31'), // teal-900
+    'surface-raised': hexToRgb('#2A3C41'), // teal-800
+    'surface-sunken': hexToRgb('#243337'), // teal-700
 
-    'text-primary': hexToRgb('#FBF7F1'),
-    'text-secondary': hexToRgb('#C8BCA9'),
-    'text-tertiary': hexToRgb('#A59B8C'),
-    'text-on-accent': hexToRgb('#14110D'),
+    'text-primary': hexToRgb('#F8FAFB'), // slate-50
+    'text-secondary': hexToRgb('#C8D1D3'), // slate-300
+    'text-tertiary': hexToRgb('#8FA0A2'), // slate-400
+    'text-on-accent': hexToRgb('#1F2A2C'), // slate-800 on boba-300
 
-    'accent-brand': hexToRgb('#E8A53C'),
-    'accent-brand-hover': hexToRgb('#F4B955'),
-    'link-fg': hexToRgb('#E8A53C'),
-    'focus-ring': hexToRgb('#E8A53C'),
-    'tomato-500': hexToRgb('#C54A3E'),
+    'accent-brand': hexToRgb('#66D7EC'), // boba-300
+    'accent-brand-hover': hexToRgb('#7EDCF0'),
+    'link-fg': hexToRgb('#66D7EC'),
+    'focus-ring': hexToRgb('#66D7EC'),
 
-    'status-open-fg': hexToRgb('#8FB26B'),
-    'status-pending-fg': hexToRgb('#E8B85C'),
-    'status-closed-fg': hexToRgb('#7A93D1'),
-    'status-cancelled-fg': hexToRgb('#E06A5E'),
-    'status-scheduled-fg': hexToRgb('#D9CDA8'),
+    'danger-500': hexToRgb('#F44336'),
+    'danger-600': hexToRgb('#D32F2F'),
 
-    'banked-fg': hexToRgb('#F4CC8E'),
+    'status-scheduled-fg': hexToRgb('#C8D1D3'), // slate-300
+    'status-open-fg': hexToRgb('#A9F095'), // lime-400
+    'status-pending-fg': hexToRgb('#FFE082'), // sunny-400
+    'status-closed-fg': hexToRgb('#66D7EC'), // boba-300
+    'status-cancelled-fg': hexToRgb('#FBB6AF'), // danger-300 — pale pink for AA on tinted dark bg
+
+    'banked-fg': hexToRgb('#FFE082'), // sunny-400
 } as const
 
 // Status backgrounds are rgba on top of surface-base/raised. Flatten against
 // the underlying surface so ratios reflect what the eye actually sees.
 function statusBgLight(rgba: { r: number; g: number; b: number; a: number }) {
-    // Status chips usually sit directly on page or card surfaces. Use
-    // surface-base for the conservative case.
     return flattenAlpha(rgba, LIGHT['surface-base'])
 }
 function statusBgDark(rgba: { r: number; g: number; b: number; a: number }) {
@@ -111,21 +113,21 @@ function statusBgDark(rgba: { r: number; g: number; b: number; a: number }) {
 }
 
 const LIGHT_STATUS_BGS = {
-    'status-scheduled-bg': { r: 217, g: 205, b: 168, a: 1 }, // butter-400 solid
-    'status-open-bg': { r: 107, g: 142, b: 78, a: 0.15 },
-    'status-pending-bg': { r: 217, g: 164, b: 60, a: 0.18 },
-    'status-closed-bg': { r: 79, g: 107, b: 177, a: 0.14 },
-    'status-cancelled-bg': { r: 197, g: 74, b: 62, a: 0.12 },
-    'banked-bg': { r: 232, g: 165, b: 60, a: 0.12 },
+    'status-scheduled-bg': { r: 108, g: 122, b: 123, a: 0.14 }, // slate-500
+    'status-open-bg': { r: 143, g: 232, b: 121, a: 0.22 },
+    'status-pending-bg': { r: 255, g: 210, b: 94, a: 0.24 },
+    'status-closed-bg': { r: 51, g: 197, b: 224, a: 0.16 },
+    'status-cancelled-bg': { r: 244, g: 67, b: 54, a: 0.12 },
+    'banked-bg': { r: 255, g: 210, b: 94, a: 0.22 },
 } as const
 
 const DARK_STATUS_BGS = {
-    'status-scheduled-bg': { r: 217, g: 205, b: 168, a: 0.16 },
-    'status-open-bg': { r: 143, g: 178, b: 107, a: 0.18 },
-    'status-pending-bg': { r: 232, g: 184, b: 92, a: 0.18 },
-    'status-closed-bg': { r: 122, g: 147, b: 209, a: 0.18 },
-    'status-cancelled-bg': { r: 224, g: 106, b: 94, a: 0.18 },
-    'banked-bg': { r: 244, g: 185, b: 85, a: 0.16 },
+    'status-scheduled-bg': { r: 200, g: 209, b: 211, a: 0.14 },
+    'status-open-bg': { r: 169, g: 240, b: 149, a: 0.18 },
+    'status-pending-bg': { r: 255, g: 224, b: 130, a: 0.18 },
+    'status-closed-bg': { r: 102, g: 215, b: 236, a: 0.18 },
+    'status-cancelled-bg': { r: 246, g: 107, b: 96, a: 0.16 },
+    'banked-bg': { r: 255, g: 224, b: 130, a: 0.16 },
 } as const
 
 // ---------- checks ----------
@@ -149,7 +151,7 @@ function pushBody(mode: 'light' | 'dark'): void {
     const texts: Array<{ key: keyof typeof pal; t: number }> = [
         { key: 'text-primary', t: 4.5 },
         { key: 'text-secondary', t: 4.5 },
-        { key: 'text-tertiary', t: 3.0 }, // placeholder / meta — AA large
+        { key: 'text-tertiary', t: 3.0 },
     ]
     for (const s of surfaces) {
         for (const t of texts) {
@@ -183,15 +185,14 @@ for (const mode of ['light', 'dark'] as const) {
         threshold: 4.5,
         mode,
     })
-    // Destructive button
+    // Destructive button: white on danger-600 (NOT danger-500 — fails AA)
     checks.push({
-        label: `white on tomato-500`,
+        label: `white on danger-600`,
         fg: { r: 255, g: 255, b: 255 },
-        bg: pal['tomato-500'],
+        bg: pal['danger-600'],
         threshold: 4.5,
         mode,
     })
-    // Inline link text on page background
     checks.push({
         label: `link-fg on surface-base (link)`,
         fg: pal['link-fg'],
@@ -226,7 +227,7 @@ for (const mode of ['light', 'dark'] as const) {
             label: `${fgKey} on ${bgKey}`,
             fg: pal[fgKey as keyof typeof pal] as Rgb,
             bg: flatten(bgs[bgKey as keyof typeof bgs]),
-            threshold: 4.5, // chip text is small
+            threshold: 4.5,
             mode,
         })
     }
@@ -240,7 +241,7 @@ for (const mode of ['light', 'dark'] as const) {
             label: `focus-ring on ${s}`,
             fg: pal['focus-ring'],
             bg: pal[s],
-            threshold: 3.0, // non-text UI component
+            threshold: 3.0,
             mode,
         })
     }

@@ -88,14 +88,14 @@ export default function LoginForm({
                         role="alert"
                         className={cn(
                             'flex items-start gap-2 rounded-[var(--radius-md)]',
-                            'border border-tomato-500/30 bg-tomato-500/5',
+                            'border border-danger-500/30 bg-danger-500/5',
                             'px-4 py-3',
                         )}
                     >
                         <AlertCircle
                             size={16}
                             strokeWidth={1.75}
-                            className="mt-0.5 shrink-0 text-tomato-500"
+                            className="mt-0.5 shrink-0 text-danger-700 dark:text-danger-400"
                             aria-hidden="true"
                         />
                         <p className="text-[0.8125rem] text-[color:var(--text-primary)]">

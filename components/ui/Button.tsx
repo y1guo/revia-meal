@@ -27,8 +27,8 @@ const VARIANT: Record<ButtonVariant, string> = {
         'bg-[color:var(--surface-raised)] text-[color:var(--text-primary)] border border-[color:var(--border-subtle)] hover:bg-[color:var(--surface-sunken)]',
     ghost: 'text-[color:var(--text-primary)] hover:bg-[color:var(--surface-raised)]',
     'ghost-destructive':
-        'text-tomato-500 hover:bg-tomato-500/10 hover:text-tomato-500',
-    destructive: 'bg-tomato-500 text-white hover:bg-tomato-500/90',
+        'text-danger-700 dark:text-danger-400 hover:bg-danger-500/10 hover:text-danger-700 dark:hover:text-danger-400',
+    destructive: 'bg-danger-600 text-white hover:bg-danger-700',
     link: 'text-[color:var(--link-fg)] underline underline-offset-2 decoration-1 hover:decoration-2',
 }
 

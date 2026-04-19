@@ -160,7 +160,7 @@ export default function VoteForm({
 
             {state && !state.ok && (
                 <p
-                    className="text-[0.875rem] text-tomato-500"
+                    className="text-[0.875rem] text-danger-700 dark:text-danger-400"
                     role="alert"
                 >
                     {state.error}

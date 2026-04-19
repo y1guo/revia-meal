@@ -2,41 +2,72 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    /* ---------- Raw color scale (Fresh Market) ---------- */
-    --color-cream-50: #fbf7f1;
-    --color-cream-100: #f3ecdf;
-    --color-cream-200: #e6dcc8;
-    --color-cream-300: #c8bca9;
+    /* ---------- Raw color scale (Boba / Lime / Sunny) ---------- */
 
-    --color-espresso-400: #a59b8c;
-    --color-espresso-600: #6b6054;
-    --color-espresso-900: #1e1a15;
-    --color-espresso-950: #14110d;
+    /* Boba — primary brand blue */
+    --color-boba-50: #e6f8fa;
+    --color-boba-100: #cceef4;
+    --color-boba-200: #99daea;
+    --color-boba-300: #66d7ec; /* dark-mode primary */
+    --color-boba-400: #33c5e0; /* light-mode primary */
+    --color-boba-500: #1ea8c4;
+    --color-boba-600: #148ba6;
+    --color-boba-700: #0f6e85; /* a11y: link + focus on pale bg */
+    --color-boba-800: #0b5566;
+    --color-boba-900: #073d4a;
 
-    --color-saffron-300: #f4cc8e;
-    --color-saffron-500: #e8a53c;
-    --color-saffron-700: #d98c19;
-    --color-saffron-900: #7a4d0a;
+    /* Lime — secondary brand green */
+    --color-lime-300: #bdefae;
+    --color-lime-400: #a9f095; /* dark-mode secondary */
+    --color-lime-500: #8fe879; /* primary lime */
+    --color-lime-600: #70c855;
+    --color-lime-700: #548f3f;
+    --color-lime-800: #3a6a28; /* a11y: status-open-fg in light mode */
+    --color-lime-900: #1f4016;
 
-    --color-sage-700: #4a6534;
-    --color-indigo-700: #2c3f75;
-    --color-tomato-700: #8a2e24;
-    --color-honey-700: #6e4d10;
+    /* Sunny — accent + banked credit */
+    --color-sunny-300: #ffe79a;
+    --color-sunny-400: #ffe082; /* dark-mode accent */
+    --color-sunny-500: #ffd25e; /* light-mode accent */
+    --color-sunny-600: #e0b445;
+    --color-sunny-700: #b48a2c;
+    --color-sunny-800: #80611a; /* a11y: banked-fg + status-pending-fg */
+    --color-sunny-900: #4d3a0e;
 
-    --color-sage-400: #8fb26b;
-    --color-sage-500: #6b8e4e;
+    /* Slate — neutrals with teal undertone */
+    --color-slate-50: #f8fafb; /* dark-mode text-primary */
+    --color-slate-100: #edf2f3;
+    --color-slate-200: #dde4e5;
+    --color-slate-300: #c8d1d3; /* dark-mode text-secondary */
+    --color-slate-400: #8fa0a2;
+    --color-slate-500: #6c7a7b; /* owner spec; we remap to text-tertiary */
+    --color-slate-600: #4e5a5c; /* a11y: text-secondary in light mode */
+    --color-slate-700: #2e3a3c; /* light-mode text-primary */
+    --color-slate-800: #1f2a2c; /* text-on-accent */
+    --color-slate-900: #141e20;
 
-    --color-indigo-400: #7a93d1;
-    --color-indigo-500: #4f6bb1;
+    /* Background surfaces */
+    --color-frost-50: #e6f8fa; /* light-mode page background */
+    --color-mint-50: #f6fffa; /* light-mode raised surface */
+    --color-mint-100: #e3f3ea; /* light-mode sunken */
+    --color-teal-700: #243337; /* dark sunken */
+    --color-teal-800: #2a3c41; /* dark raised */
+    --color-teal-900: #1d2d31; /* dark base */
 
-    --color-honey-400: #e8b85c;
-    --color-honey-500: #d9a43c;
+    /* Semantic status scales */
+    --color-success-400: #7dc983;
+    --color-success-500: #4caf50;
+    --color-success-700: #2e7a32;
 
-    --color-butter-400: #d9cda8;
-    --color-butter-700: #8a7e5f;
+    --color-warning-400: #ffb960;
+    --color-warning-500: #ff9800;
+    --color-warning-700: #b36200;
 
-    --color-tomato-400: #e06a5e;
-    --color-tomato-500: #c54a3e;
+    --color-danger-300: #fbb6af;
+    --color-danger-400: #f66b60;
+    --color-danger-500: #f44336;
+    --color-danger-600: #d32f2f; /* destructive button bg — AA with white */
+    --color-danger-700: #a5291f;
 
     /* ---------- Typography ---------- */
     --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
@@ -52,10 +83,10 @@
     --radius-lg: 14px;
     --radius-pill: 999px;
 
-    /* ---------- Shadows (light mode values) ---------- */
-    --shadow-sm: 0 1px 2px rgba(30, 26, 21, 0.06);
-    --shadow-md: 0 8px 24px rgba(30, 26, 21, 0.08);
-    --shadow-lg: 0 16px 48px rgba(30, 26, 21, 0.12);
+    /* ---------- Shadows (light mode values — tuned to new slate tone) ---------- */
+    --shadow-sm: 0 1px 2px rgba(20, 30, 32, 0.06);
+    --shadow-md: 0 8px 24px rgba(20, 30, 32, 0.08);
+    --shadow-lg: 0 16px 48px rgba(20, 30, 32, 0.12);
 
     /* ---------- Motion ---------- */
     --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
@@ -64,38 +95,38 @@
 
 /* ---------- Semantic tokens — light mode ---------- */
 :root {
-    --surface-base: var(--color-cream-50);
-    --surface-raised: var(--color-cream-100);
-    --surface-sunken: var(--color-cream-200);
-    --border-subtle: var(--color-cream-200);
-    --border-strong: var(--color-espresso-400);
+    --surface-base: var(--color-frost-50);
+    --surface-raised: var(--color-mint-50);
+    --surface-sunken: var(--color-mint-100);
+    --border-subtle: #c9e2e7;
+    --border-strong: var(--color-slate-400);
 
-    --text-primary: var(--color-espresso-900);
-    --text-secondary: var(--color-espresso-600);
-    --text-tertiary: #7a6e5c;
-    /* Dark text on saffron for AA contrast. */
-    --text-on-accent: var(--color-espresso-900);
-    /* Darker saffron for inline link text on cream. */
-    --link-fg: var(--color-saffron-900);
-    /* Deeper saffron for focus ring — saffron-700 alone doesn't hit 3:1 on cream. */
-    --focus-ring: var(--color-saffron-900);
+    --text-primary: var(--color-slate-700);
+    --text-secondary: var(--color-slate-600);
+    --text-tertiary: var(--color-slate-500);
+    /* Dark text on boba/sunny for AA contrast. */
+    --text-on-accent: var(--color-slate-800);
+    /* Darker boba for inline link text on pale backgrounds. */
+    --link-fg: var(--color-boba-700);
+    /* Same darker boba for focus ring — passes 3:1 on pale surfaces. */
+    --focus-ring: var(--color-boba-700);
 
-    --accent-brand: var(--color-saffron-500);
-    --accent-brand-hover: var(--color-saffron-700);
+    --accent-brand: var(--color-boba-400);
+    --accent-brand-hover: var(--color-boba-500);
 
-    --status-scheduled-bg: var(--color-butter-400);
-    --status-scheduled-fg: var(--color-espresso-900);
-    --status-open-bg: rgba(107, 142, 78, 0.15);
-    --status-open-fg: var(--color-sage-700);
-    --status-pending-bg: rgba(217, 164, 60, 0.18);
-    --status-pending-fg: var(--color-honey-700);
-    --status-closed-bg: rgba(79, 107, 177, 0.14);
-    --status-closed-fg: var(--color-indigo-700);
-    --status-cancelled-bg: rgba(197, 74, 62, 0.12);
-    --status-cancelled-fg: var(--color-tomato-700);
+    --status-scheduled-bg: rgba(108, 122, 123, 0.14);
+    --status-scheduled-fg: var(--color-slate-700);
+    --status-open-bg: rgba(143, 232, 121, 0.22);
+    --status-open-fg: var(--color-lime-800);
+    --status-pending-bg: rgba(255, 210, 94, 0.24);
+    --status-pending-fg: var(--color-sunny-800);
+    --status-closed-bg: rgba(51, 197, 224, 0.16);
+    --status-closed-fg: var(--color-boba-700);
+    --status-cancelled-bg: rgba(244, 67, 54, 0.12);
+    --status-cancelled-fg: var(--color-danger-700);
 
-    --banked-bg: rgba(232, 165, 60, 0.12);
-    --banked-fg: var(--color-saffron-900);
+    --banked-bg: rgba(255, 210, 94, 0.22);
+    --banked-fg: var(--color-sunny-800);
 
     --shadow-card-rest: var(--shadow-sm);
     --shadow-card-hover: var(--shadow-md);
@@ -104,41 +135,41 @@
 
 /* ---------- Semantic tokens — dark mode ---------- */
 .dark {
-    --surface-base: var(--color-espresso-950);
-    --surface-raised: var(--color-espresso-900);
-    --surface-sunken: #29241d;
-    --border-subtle: rgba(251, 247, 241, 0.08);
-    --border-strong: rgba(251, 247, 241, 0.24);
+    --surface-base: var(--color-teal-900);
+    --surface-raised: var(--color-teal-800);
+    --surface-sunken: var(--color-teal-700);
+    --border-subtle: rgba(248, 250, 251, 0.08);
+    --border-strong: rgba(248, 250, 251, 0.24);
 
-    --text-primary: var(--color-cream-50);
-    --text-secondary: var(--color-cream-300);
-    --text-tertiary: var(--color-espresso-400);
-    --text-on-accent: var(--color-espresso-950);
-    /* Saffron links/focus-ring pass AA on the dark espresso surface. */
-    --link-fg: var(--color-saffron-500);
-    --focus-ring: var(--color-saffron-500);
+    --text-primary: var(--color-slate-50);
+    --text-secondary: var(--color-slate-300);
+    --text-tertiary: var(--color-slate-400);
+    --text-on-accent: var(--color-slate-800);
+    /* Brighter boba for links/focus-ring on deep teal surface. */
+    --link-fg: var(--color-boba-300);
+    --focus-ring: var(--color-boba-300);
 
-    --accent-brand: var(--color-saffron-500);
-    --accent-brand-hover: #f4b955;
+    --accent-brand: var(--color-boba-300);
+    --accent-brand-hover: #7edcf0;
 
-    --status-scheduled-bg: rgba(217, 205, 168, 0.16);
-    --status-scheduled-fg: var(--color-butter-400);
-    --status-open-bg: rgba(143, 178, 107, 0.18);
-    --status-open-fg: var(--color-sage-400);
-    --status-pending-bg: rgba(232, 184, 92, 0.18);
-    --status-pending-fg: var(--color-honey-400);
-    --status-closed-bg: rgba(122, 147, 209, 0.18);
-    --status-closed-fg: var(--color-indigo-400);
-    --status-cancelled-bg: rgba(224, 106, 94, 0.18);
-    --status-cancelled-fg: var(--color-tomato-400);
+    --status-scheduled-bg: rgba(200, 209, 211, 0.14);
+    --status-scheduled-fg: var(--color-slate-300);
+    --status-open-bg: rgba(169, 240, 149, 0.18);
+    --status-open-fg: var(--color-lime-400);
+    --status-pending-bg: rgba(255, 224, 130, 0.18);
+    --status-pending-fg: var(--color-sunny-400);
+    --status-closed-bg: rgba(102, 215, 236, 0.18);
+    --status-closed-fg: var(--color-boba-300);
+    --status-cancelled-bg: rgba(246, 107, 96, 0.16);
+    --status-cancelled-fg: var(--color-danger-300);
 
-    --banked-bg: rgba(244, 185, 85, 0.16);
-    --banked-fg: var(--color-saffron-300);
+    --banked-bg: rgba(255, 224, 130, 0.16);
+    --banked-fg: var(--color-sunny-400);
 
-    --shadow-card-rest: 0 0 0 1px rgba(251, 247, 241, 0.08);
-    --shadow-card-hover: 0 0 0 1px rgba(251, 247, 241, 0.14);
+    --shadow-card-rest: 0 0 0 1px rgba(248, 250, 251, 0.08);
+    --shadow-card-hover: 0 0 0 1px rgba(248, 250, 251, 0.14);
     --shadow-modal:
-        0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(251, 247, 241, 0.08);
+        0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(248, 250, 251, 0.08);
 }
 
 /* ---------- Base element defaults ---------- */
@@ -156,7 +187,7 @@ body {
     font-feature-settings: "ss01", "cv11";
 }
 
-/* Focus ring — mode-aware saffron via --focus-ring. */
+/* Focus ring — mode-aware boba via --focus-ring. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;

@@ -67,7 +67,7 @@ export function Select({
                     'transition-colors duration-150',
                     'disabled:opacity-50 disabled:cursor-not-allowed',
                     error
-                        ? 'border-tomato-500'
+                        ? 'border-danger-500'
                         : 'border-[color:var(--border-subtle)]',
                     'data-[state=open]:border-[color:var(--accent-brand)]',
                     SIZE[size],

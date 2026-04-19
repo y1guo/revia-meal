@@ -30,7 +30,7 @@ export function Modal({
                 <DialogPrimitive.Overlay
                     className={cn(
                         'fixed inset-0 z-40',
-                        'bg-[rgba(30,26,21,0.45)] backdrop-blur-[4px]',
+                        'bg-[rgba(20,30,32,0.45)] backdrop-blur-[4px]',
                     )}
                 />
                 <DialogPrimitive.Content
@@ -79,8 +79,8 @@ export function ModalIcon({
 }) {
     const toneStyles =
         tone === 'destructive'
-            ? 'bg-tomato-500/12 text-tomato-500'
-            : 'bg-indigo-500/12 text-indigo-500'
+            ? 'bg-danger-500/12 text-danger-700 dark:text-danger-400'
+            : 'bg-boba-500/14 text-boba-700 dark:text-boba-300'
     return (
         <div
             className={cn(
@@ -174,7 +174,7 @@ export function ModalWarning({
             className={cn(
                 'mt-4 flex items-start gap-2',
                 'px-3 py-2 rounded-[var(--radius-md)]',
-                'border border-tomato-500/30 bg-tomato-500/5',
+                'border border-danger-500/30 bg-danger-500/5',
                 'text-[0.8125rem] text-[color:var(--text-primary)]',
                 className,
             )}

@@ -60,7 +60,7 @@ export function DestructiveConfirmModal({
                     <AlertCircle
                         size={16}
                         strokeWidth={1.75}
-                        className="mt-0.5 shrink-0 text-tomato-500"
+                        className="mt-0.5 shrink-0 text-danger-700 dark:text-danger-400"
                         aria-hidden="true"
                     />
                     <span>{warning}</span>
