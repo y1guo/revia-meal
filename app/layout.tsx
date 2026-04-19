@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Fraunces, Geist, Geist_Mono } from 'next/font/google'
+import { ThemeSync } from '@/components/ThemeSync'
 import { themeScript } from '@/lib/theme-script'
 import './globals.css'
 
@@ -40,7 +41,10 @@ export default function RootLayout({
             <head>
                 <script dangerouslySetInnerHTML={{ __html: themeScript }} />
             </head>
-            <body className="min-h-full flex flex-col">{children}</body>
+            <body className="min-h-full flex flex-col">
+                <ThemeSync />
+                {children}
+            </body>
         </html>
     )
 }
