@@ -183,8 +183,7 @@ const fraunces = Fraunces({
   variable: "--font-fraunces",
   subsets: ["latin"],
   axes: ["opsz", "SOFT"],
-  // variable font — one file covers every weight; use `font-weight: 500|600` via Tailwind.
-  weight: "variable",
+  // Variable font — `weight` is omitted per Next 16's idiom; use `font-weight: 500|600` via Tailwind.
   display: "swap",
 });
 
@@ -267,7 +266,7 @@ Register a `matchMedia('(prefers-color-scheme: dark)').addEventListener('change'
 Install:
 
 ```
-npm install lucide-react
+pnpm add lucide-react
 ```
 
 Default stroke width: **1.75** (softer than the 2px default, still legible at 16px). Wrap in a project-local `<Icon>` alias to apply the default:

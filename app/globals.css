@@ -1,26 +1,160 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+    /* ---------- Raw color scale (Fresh Market) ---------- */
+    --color-cream-50: #fbf7f1;
+    --color-cream-100: #f3ecdf;
+    --color-cream-200: #e6dcc8;
+    --color-cream-300: #c8bca9;
+
+    --color-espresso-400: #a59b8c;
+    --color-espresso-600: #6b6054;
+    --color-espresso-900: #1e1a15;
+    --color-espresso-950: #14110d;
+
+    --color-saffron-300: #f4cc8e;
+    --color-saffron-500: #e8a53c;
+    --color-saffron-700: #d98c19;
+
+    --color-sage-400: #8fb26b;
+    --color-sage-500: #6b8e4e;
+
+    --color-indigo-400: #7a93d1;
+    --color-indigo-500: #4f6bb1;
+
+    --color-honey-400: #e8b85c;
+    --color-honey-500: #d9a43c;
+
+    --color-butter-400: #d9cda8;
+    --color-butter-700: #8a7e5f;
+
+    --color-tomato-400: #e06a5e;
+    --color-tomato-500: #c54a3e;
+
+    /* ---------- Typography ---------- */
+    --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+    --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    --font-mono: var(--font-geist-mono), ui-monospace, Menlo, monospace;
+
+    /* ---------- Spacing additions (defaults cover most) ---------- */
+    --spacing-18: 4.5rem;
+
+    /* ---------- Radii ---------- */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-pill: 999px;
+
+    /* ---------- Shadows (light mode values) ---------- */
+    --shadow-sm: 0 1px 2px rgba(30, 26, 21, 0.06);
+    --shadow-md: 0 8px 24px rgba(30, 26, 21, 0.08);
+    --shadow-lg: 0 16px 48px rgba(30, 26, 21, 0.12);
+
+    /* ---------- Motion ---------- */
+    --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+    --ease-in-quart: cubic-bezier(0.5, 0, 0.75, 0);
+}
+
+/* ---------- Semantic tokens — light mode ---------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    --surface-base: var(--color-cream-50);
+    --surface-raised: var(--color-cream-100);
+    --surface-sunken: var(--color-cream-200);
+    --border-subtle: var(--color-cream-200);
+    --border-strong: var(--color-espresso-400);
+
+    --text-primary: var(--color-espresso-900);
+    --text-secondary: var(--color-espresso-600);
+    --text-tertiary: var(--color-espresso-400);
+    --text-on-accent: var(--color-cream-50);
+
+    --accent-brand: var(--color-saffron-500);
+    --accent-brand-hover: var(--color-saffron-700);
+
+    --status-scheduled-bg: var(--color-butter-400);
+    --status-scheduled-fg: var(--color-espresso-900);
+    --status-open-bg: rgba(107, 142, 78, 0.15);
+    --status-open-fg: var(--color-sage-500);
+    --status-pending-bg: rgba(217, 164, 60, 0.18);
+    --status-pending-fg: #9c6f1a;
+    --status-closed-bg: rgba(79, 107, 177, 0.14);
+    --status-closed-fg: var(--color-indigo-500);
+    --status-cancelled-bg: rgba(197, 74, 62, 0.12);
+    --status-cancelled-fg: var(--color-tomato-500);
+
+    --banked-bg: rgba(232, 165, 60, 0.12);
+    --banked-fg: var(--color-saffron-700);
+
+    --shadow-card-rest: var(--shadow-sm);
+    --shadow-card-hover: var(--shadow-md);
+    --shadow-modal: var(--shadow-lg);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ---------- Semantic tokens — dark mode ---------- */
+.dark {
+    --surface-base: var(--color-espresso-950);
+    --surface-raised: var(--color-espresso-900);
+    --surface-sunken: #29241d;
+    --border-subtle: rgba(251, 247, 241, 0.08);
+    --border-strong: rgba(251, 247, 241, 0.24);
+
+    --text-primary: var(--color-cream-50);
+    --text-secondary: var(--color-cream-300);
+    --text-tertiary: var(--color-espresso-400);
+    --text-on-accent: var(--color-espresso-950);
+
+    --accent-brand: var(--color-saffron-500);
+    --accent-brand-hover: #f4b955;
+
+    --status-scheduled-bg: rgba(217, 205, 168, 0.16);
+    --status-scheduled-fg: var(--color-butter-400);
+    --status-open-bg: rgba(143, 178, 107, 0.18);
+    --status-open-fg: var(--color-sage-400);
+    --status-pending-bg: rgba(232, 184, 92, 0.18);
+    --status-pending-fg: var(--color-honey-400);
+    --status-closed-bg: rgba(122, 147, 209, 0.18);
+    --status-closed-fg: var(--color-indigo-400);
+    --status-cancelled-bg: rgba(224, 106, 94, 0.18);
+    --status-cancelled-fg: var(--color-tomato-400);
+
+    --banked-bg: rgba(244, 185, 85, 0.16);
+    --banked-fg: var(--color-saffron-300);
+
+    --shadow-card-rest: 0 0 0 1px rgba(251, 247, 241, 0.08);
+    --shadow-card-hover: 0 0 0 1px rgba(251, 247, 241, 0.14);
+    --shadow-modal:
+        0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(251, 247, 241, 0.08);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ---------- Base element defaults ---------- */
+html {
+    color-scheme: light dark;
+}
+.dark {
+    color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+}
+
+/* Saffron focus ring */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--color-saffron-500);
+    outline-offset: 2px;
+    border-radius: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 120ms !important;
+    }
 }
