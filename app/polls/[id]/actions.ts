@@ -89,12 +89,15 @@ export async function submitVote(
         return { ok: true, savedCount: 0 }
     }
 
+    const voteWeight = 1 / picks.length
     const { error: insErr } = await admin.from('votes').insert(
         picks.map((restaurantId) => ({
             poll_id: pollId,
             user_id: user.id,
             restaurant_id: restaurantId,
+            template_id: poll.template_id,
             scheduled_date: poll.scheduled_date,
+            vote_weight: voteWeight,
         })),
     )
     if (insErr) return { ok: false, error: `Failed to save votes: ${insErr.message}` }

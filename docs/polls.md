@@ -40,16 +40,16 @@ A poll past `closes_at` with neither `finalized_at` nor `cancelled_at` set is in
 
 1. `SELECT ... FOR UPDATE` on the poll row.
 2. Re-check the poll is still pending close (another concurrent finalizer may have already done the work).
-3. **If there are no votes**, set `cancelled_at = now()`, `cancellation_reason = 'no_votes'`. Done.
-4. **Otherwise**:
-   - For each user who voted, their per-pick weight is `1 / (their pick count in this poll)`.
-   - For each restaurant in the poll, its **poll contribution** is the sum of per-pick weights from every voter who picked it.
-   - Add the contribution to `template_restaurants.accumulated_credits` for each restaurant. Write a `restaurant_credit_events` row with `reason = 'poll_accumulation'` for each.
-   - Choose the winner as the restaurant with the highest new total (tiebreaker below).
-   - Apply the winner reset to the winner's balance and write a `restaurant_credit_events` row with `reason = 'winner_reset'`.
+3. **If there are no votes**, set `cancelled_at = now()`, `cancellation_reason = 'no_votes'`. Done — no credit movement.
+4. **Otherwise**, run the per-user banked-credit tally (see [Rolling credits](#rolling-credits-per-user-per-restaurant)):
+   - For each restaurant `R` on the ballot:
+     - `today_voters(R)` = the set of users who voted for `R` in this poll
+     - `tally(R)` = sum over each `u ∈ today_voters(R)` of: sum of `vote_weight` from all rows where `user_id=u, restaurant_id=R, template_id=T, exercised_at IS NULL` (this includes today's row, which is itself unexercised)
+   - Choose the winner as the restaurant with the highest tally (tiebreaker below).
+   - **Exercise** every banked credit that contributed to the win: `UPDATE votes SET exercised_at=now(), exercised_poll_id=<this poll> WHERE template_id=T AND restaurant_id=<winner> AND user_id IN (today_voters(winner)) AND exercised_at IS NULL`. This zeros out the personal balance for every voter who got their wish today.
    - Set `finalized_at = now()` and `winner_id`.
 
-All in one transaction: either the poll is fully finalized or not at all.
+All in one transaction. Idempotent on retry — the SELECT FOR UPDATE + status re-check guarantees a single finalizer wins.
 
 ### Cancellation
 
@@ -62,42 +62,81 @@ Cancelled polls remain visible in history with a clear cancelled label. A cancel
 
 ## Voting rules
 
-1. **One credit per poll.** Each user has exactly 1 voting credit to spend per poll. There is no per-user balance carried across polls — users are stateless on credits.
-2. **One template per user per local date.** A user may participate in only one template's poll for a given `scheduled_date`. This is enforced by the `daily_participation` row created on their first vote of the day. Unpicking every restaurant does not release the lock.
-3. **Freely editable while open.** Users add and remove picks at any time during the open window. A pick is just a row in `votes`.
-4. **Even split at close.** At finalization, a user who picked `n` restaurants contributes `1/n` to each of those restaurants. A user who ended the open window with zero picks contributes nothing (and effectively didn't vote — but their `daily_participation` lock remains).
+1. **One credit per poll.** Each user has exactly 1 voting credit per poll, evenly split across their picks at submit time. A row in `votes` carries the resulting `vote_weight = 1 / picks_count`.
+2. **One template per user per local date.** A user may participate in only one template's poll for a given `scheduled_date`. Enforced by the `daily_participation` row created on their first vote of the day. Unpicking every restaurant does not release the lock.
+3. **Freely editable while open.** Users add and remove picks at any time during the open window. Updating picks rewrites that user's rows for the poll (DELETE+INSERT) and updates `vote_weight` to the new split.
 
-## Rolling credits on restaurants
+## Rolling credits (per user, per restaurant)
 
-Each `(template, restaurant)` carries an `accumulated_credits` balance. At finalization, each restaurant's poll contribution is **added** to its balance.
+The credit ledger is the `votes` table itself. A row that hasn't been **exercised** is both a historical vote and a banked credit for `(user, template, restaurant)` worth `vote_weight`.
 
-- The restaurant with the highest balance after the add is the winner.
-- The winner's balance is then **reduced**. The exact reduction is the one piece of the deferred algorithm — current placeholder is **full reset to 0**.
-- Every other restaurant keeps its new, higher balance — this is the rollover. Options that keep almost-winning eventually win.
+The mechanism is per-user attribution under per-restaurant scoring — the system picks a restaurant as the winner, but each user's credits are tracked individually so the right people are rewarded.
 
-Because accumulation lives on `(template, restaurant)`, a restaurant that appears in both Regular and Healthy has two independent balances; a win in one template leaves the other untouched.
+**A user's banked credit only counts if they show up AND vote for that restaurant today.** This solves two failure modes the naive per-restaurant model has:
+
+- **Wrong-audience problem.** If Alice's banked Sushi credits could win a poll on a day she's at Dinner instead of Lunch, today's Lunch voters get stuck eating Sushi nobody currently wants. With the gate, her credits sit unexercised until she's present and voting Sushi again.
+- **Today's preference vs. yesterday's.** If Alice has banked Sushi credits but feels like Pizza today, only her Pizza credits trigger. Her Sushi credits stay banked for next time.
+
+### Tally formula
+
+For a poll `Q` in template `T`, for each restaurant `R` on the ballot:
+
+```
+today_voters(R)   = users with a vote row in poll Q for restaurant R
+tally(R)          = sum over u in today_voters(R) of (
+                       sum of vote_weight from votes
+                         where user_id=u, restaurant_id=R, template_id=T,
+                               exercised_at IS NULL
+                    )
+```
+
+Today's row is itself unexercised (until finalize), so it's included in the inner sum naturally.
+
+### Winner reset (exercise)
+
+When `R` wins poll `Q`:
+
+```
+UPDATE votes
+   SET exercised_at = now(), exercised_poll_id = Q
+ WHERE template_id = T
+   AND restaurant_id = R
+   AND user_id IN (today_voters(R))
+   AND exercised_at IS NULL
+```
+
+A user who voted for the winner today has *all* their R-credits in this template exercised — full personal reset. Their credits for other restaurants stay untouched. Other voters' credits for R also stay untouched (they didn't get their wish today).
 
 ### Tiebreaker
 
-If two or more restaurants end up tied for the highest total, the winner is chosen **uniformly at random** from the tied restaurants. The choice is made inside the finalization transaction (e.g. `ORDER BY total DESC, random() LIMIT 1`) and locked in by the commit. A more structured rule — e.g. biased toward whichever tied restaurant has been losing ties the longest — can be picked in the algorithm session if we want it.
+If two or more restaurants tie for the highest tally, the winner is chosen **uniformly at random** from the tied restaurants — picked inside the finalization transaction (e.g. `ORDER BY tally DESC, random() LIMIT 1`) and locked in by the commit.
 
-## What is deliberately NOT decided yet
+### Why no cap, no decay
 
-After the move to restaurant-owned credits, the open questions for the dedicated design session shrink to:
+A restaurant that *no current voter ever picks* can't accumulate against this poll's tally — its banked credits, if any, belong to people not voting for it today and don't trigger. So the empty-vote-skip is the natural ceiling: there's no "vegan option no one ever wanted finally wins in month 6" failure mode. No cap or decay needed.
 
-- **Winner reduction size.** Full reset to 0 (current placeholder) vs. a partial reduction (subtract the second-place total, subtract the winning margin, subtract a fixed amount, etc.).
-- **Decay over time.** Whether accumulated balances should decay (e.g. a percent per week) to avoid long-dormant options eventually dominating.
-- **Tiebreaker rule** beyond the deterministic placeholder.
+## Visibility rules
 
-The earlier open questions around daily grants, user-owned credit weighting, new-user seeding, and per-user caps are all obsolete under this model.
+Anonymity during voting prevents bandwagon and anchoring effects; full transparency post-close keeps the system trustworthy and explainable.
+
+| Data | Open | Post-close |
+|---|---|---|
+| Your own vote | visible | visible |
+| Your own banked credits per restaurant | visible | visible |
+| Live aggregate tally | hidden | — |
+| Final per-restaurant breakdown (today's votes + banked boost = tally) | — | visible |
+| Winner + winner reasoning | — | visible |
+| Who-voted-what (other people's picks) | hidden | visible |
+| Participant count | visible | visible |
+
+The "your own banked credits" view shows each restaurant with a small annotation like `+0.5 banked` next to the option — actionable for the voter, doesn't leak who else might boost it, doesn't change as other people vote.
 
 ## Auditability
 
-Every accumulated-credit change is written to `restaurant_credit_events`:
+Every credit movement is implicit in the `votes` table:
 
-- `poll_accumulation` — a restaurant gained credit from a closing poll.
-- `winner_reset` — the winner's balance was reduced on close.
-- `admin_adjustment` — an admin manually tweaked a balance.
-- `decay` — (future) a decay sweep reduced balances.
+- A row created → that user banked `vote_weight` for `(template, restaurant)`.
+- A row updated to set `exercised_at` → that credit was consumed by `exercised_poll_id` (the winning poll).
+- No separate audit log needed; the table is append-mostly with one terminal state transition (`exercised_at` set) per row.
 
-The leaderboard history and any algorithm debugging both read from this log.
+The same table powers the [/people spectrum](features.md) page, which aggregates each user's vote rows by restaurant over a date range.

@@ -37,7 +37,7 @@ export default async function TemplateEditPage({ params }: { params: Params }) {
             .order('name'),
         admin
             .from('template_restaurants')
-            .select('restaurant_id, accumulated_credits, is_active')
+            .select('restaurant_id, is_active')
             .eq('template_id', id),
     ])
 
@@ -48,11 +48,8 @@ export default async function TemplateEditPage({ params }: { params: Params }) {
     const assignments = assignmentsRes.data ?? []
     const schedule = (template.schedule ?? {}) as Schedule
 
-    const assignmentMap = new Map<string, { credits: number; active: boolean }>(
-        assignments.map((a) => [
-            a.restaurant_id,
-            { credits: Number(a.accumulated_credits), active: a.is_active },
-        ]),
+    const assignmentMap = new Map<string, { active: boolean }>(
+        assignments.map((a) => [a.restaurant_id, { active: a.is_active }]),
     )
 
     return (
@@ -151,8 +148,8 @@ export default async function TemplateEditPage({ params }: { params: Params }) {
                 <h2 className="text-lg font-medium">Restaurants</h2>
                 <p className="text-xs text-neutral-500">
                     Checked restaurants are part of this template&apos;s ballot. Unchecking a previously-checked
-                    restaurant soft-deactivates the assignment — accumulated credits are preserved and
-                    restored if you re-check it later.
+                    restaurant soft-deactivates the assignment — users keep their banked credits for it
+                    in this template, and re-checking restores the option to future ballots.
                 </p>
                 {restaurants.length === 0 ? (
                     <p className="text-sm text-neutral-500">
@@ -182,11 +179,6 @@ export default async function TemplateEditPage({ params }: { params: Params }) {
                                     {!r.is_active && (
                                         <span className="text-xs text-neutral-500">
                                             (catalog inactive)
-                                        </span>
-                                    )}
-                                    {current && (
-                                        <span className="text-xs text-neutral-500 tabular-nums">
-                                            balance: {current.credits.toFixed(3)}
                                         </span>
                                     )}
                                 </label>

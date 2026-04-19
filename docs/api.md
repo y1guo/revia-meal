@@ -27,7 +27,7 @@ We store only a hash of the token; the plaintext is shown **once** at creation t
 - **`GET /api/v1/polls/:id/results`**
   Returns the poll's current state. Hitting this endpoint after `closes_at` triggers **lazy finalization** (compute winner + credit movements, or auto-cancel if no votes). Response shape:
   - `in_progress` — poll has not closed yet.
-  - `closed` — winner, per-restaurant contribution for this poll, and the deltas applied to `accumulated_credits`.
+  - `closed` — winner, per-restaurant breakdown (today's votes + banked-credit boost = total tally), and the list of voters per restaurant.
   - `cancelled` — cancellation reason (`no_votes` or `admin`) and, if admin, who cancelled.
 
 ### User

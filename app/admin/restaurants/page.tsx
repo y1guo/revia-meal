@@ -92,8 +92,8 @@ export default async function RestaurantsPage() {
                     ))}
                 </div>
                 <p className="text-xs text-neutral-500">
-                    Removing a restaurant is done by unchecking <code>active</code> — accumulated credits
-                    in every template that uses it are preserved.
+                    Removing a restaurant is done by unchecking <code>active</code> — banked credits
+                    users hold for it in any template are preserved.
                 </p>
             </section>
         </main>

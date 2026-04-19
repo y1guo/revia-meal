@@ -43,12 +43,11 @@ create table poll_templates (
 
 -- ============================================================================
 -- template_restaurants
--- Carries the rolling-credit balance per (template, restaurant).
+-- Pure assignment table. Credit state lives on `votes` (per-user attribution).
 -- ============================================================================
 create table template_restaurants (
     template_id uuid not null references poll_templates(id) on delete cascade,
     restaurant_id uuid not null references restaurants(id) on delete restrict,
-    accumulated_credits numeric not null default 0,
     is_active boolean not null default true,
     created_at timestamptz not null default now(),
     primary key (template_id, restaurant_id)
@@ -92,19 +91,34 @@ create table poll_options (
 
 -- ============================================================================
 -- votes
--- One row per (user, poll, restaurant) selection. Users edit picks by
--- adding/removing rows during the open window.
+-- One row per (user, poll, restaurant) selection. Doubles as the rolling-
+-- credit ledger: an unexercised row (exercised_at IS NULL) is both a
+-- historical vote and a banked credit for (user, template, restaurant) worth
+-- vote_weight. Exercised when the row's restaurant wins a poll the user
+-- voted in. See docs/polls.md for the full algorithm.
 -- ============================================================================
 create table votes (
     poll_id uuid not null references polls(id) on delete cascade,
     user_id uuid not null references users(id) on delete cascade,
     restaurant_id uuid not null references restaurants(id) on delete restrict,
+    template_id uuid not null references poll_templates(id) on delete restrict,
     scheduled_date date not null,
+    vote_weight numeric not null default 1,
     created_at timestamptz not null default now(),
-    primary key (poll_id, user_id, restaurant_id)
+    exercised_at timestamptz,
+    exercised_poll_id uuid references polls(id) on delete restrict,
+    primary key (poll_id, user_id, restaurant_id),
+    check ((exercised_at is null) = (exercised_poll_id is null)),
+    check (vote_weight > 0)
 );
 
 create index votes_user_scheduled_date_idx on votes (user_id, scheduled_date);
+-- Hot path for the per-user banked-credit tally at finalize time.
+create index votes_credit_tally_idx
+    on votes (template_id, restaurant_id, user_id)
+    where exercised_at is null;
+-- Hot path for the spectrum page (per-user aggregates over a date range).
+create index votes_user_template_idx on votes (user_id, template_id, scheduled_date);
 
 -- ============================================================================
 -- daily_participation
@@ -117,29 +131,6 @@ create table daily_participation (
     first_voted_at timestamptz not null default now(),
     primary key (user_id, scheduled_date)
 );
-
--- ============================================================================
--- restaurant_credit_events
--- Append-only audit log of every accumulated-credit movement.
--- ============================================================================
-create table restaurant_credit_events (
-    id uuid primary key default gen_random_uuid(),
-    seq bigserial not null unique,
-    template_id uuid not null references poll_templates(id) on delete restrict,
-    restaurant_id uuid not null references restaurants(id) on delete restrict,
-    poll_id uuid references polls(id) on delete set null,
-    delta numeric not null,
-    reason text not null check (reason in (
-        'poll_accumulation',
-        'winner_reset',
-        'admin_adjustment',
-        'decay'
-    )),
-    created_at timestamptz not null default now()
-);
-
-create index rce_template_restaurant_idx
-    on restaurant_credit_events (template_id, restaurant_id, seq);
 
 -- ============================================================================
 -- api_keys

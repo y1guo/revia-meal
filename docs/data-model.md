@@ -63,19 +63,18 @@ A poll template is a recurring "lunch group": a configured set of restaurants, a
 
 ## template_restaurants
 
-Many-to-many between templates and restaurants. **Carries the rolling-credit balance** for a restaurant within a template — each template is an independent "lunch world".
+Many-to-many between templates and restaurants. Pure assignment — credit state lives on `votes` (see below).
 
-| column              | type        | notes                                     |
-|---------------------|-------------|-------------------------------------------|
-| template_id         | uuid (fk)   |                                           |
-| restaurant_id       | uuid (fk)   |                                           |
-| accumulated_credits | numeric     | default 0; updated at poll finalization   |
-| is_active           | bool        | hide this option in future polls          |
-| created_at          | timestamptz |                                           |
+| column        | type        | notes                                     |
+|---------------|-------------|-------------------------------------------|
+| template_id   | uuid (fk)   |                                           |
+| restaurant_id | uuid (fk)   |                                           |
+| is_active     | bool        | hide this option in future polls          |
+| created_at    | timestamptz |                                           |
 
-Primary key: `(template_id, restaurant_id)`. New rows start at 0.
+Primary key: `(template_id, restaurant_id)`.
 
-Admin "remove a restaurant from this template" is a **soft deactivate** (`is_active = false`) — the row stays, the balance is preserved, and re-activating later restores the same balance. Hard deletion of the row is not exposed in the admin UI; if done directly against the DB, the balance is lost and a subsequent re-add starts at 0.
+Admin "remove a restaurant from this template" is a **soft deactivate** (`is_active = false`). The assignment row stays (so users keep their banked credits for that restaurant in this template), and re-activating restores the option to future ballots.
 
 ## polls
 
@@ -121,19 +120,26 @@ Primary key: `(poll_id, restaurant_id)`.
 
 ## votes
 
-One row per user selection in a poll. During the open window, users add and remove rows freely to edit their picks.
+One row per user selection in a poll. **Doubles as the rolling-credit ledger** — a row that has not yet been "exercised" represents both a historical vote and a banked credit for that user/restaurant pair within the template. See [polls.md](polls.md#rolling-credits-per-user-per-restaurant) for the full algorithm.
 
-| column         | type        | notes                                      |
-|----------------|-------------|--------------------------------------------|
-| poll_id        | uuid (fk)   |                                            |
-| user_id        | uuid (fk)   |                                            |
-| restaurant_id  | uuid (fk)   |                                            |
-| scheduled_date | date        | denormalized from the poll for enforcement |
-| created_at     | timestamptz |                                            |
+| column             | type        | notes                                                                                       |
+|--------------------|-------------|---------------------------------------------------------------------------------------------|
+| poll_id            | uuid (fk)   |                                                                                             |
+| user_id            | uuid (fk)   |                                                                                             |
+| restaurant_id      | uuid (fk)   |                                                                                             |
+| template_id        | uuid (fk)   | denormalized from `polls.template_id`; lets credit-tally queries skip a join                |
+| scheduled_date     | date        | denormalized from the poll for daily-participation enforcement                              |
+| vote_weight        | numeric     | the user's per-pick weight at submit time, `1 / picks_count`. Set on insert, never updated  |
+| created_at         | timestamptz |                                                                                             |
+| exercised_at       | timestamptz | nullable; set when this credit is consumed (the row's restaurant won a poll the user voted in) |
+| exercised_poll_id  | uuid (fk)   | nullable; the poll that consumed it. CHECK: `(exercised_at IS NULL) = (exercised_poll_id IS NULL)` |
 
-Primary key: `(poll_id, user_id, restaurant_id)`.
+Primary key: `(poll_id, user_id, restaurant_id)`. Users edit picks during the open window via DELETE+INSERT; the new row's `vote_weight` reflects the new split.
 
-No `weight` column — at finalization we compute each user's per-pick weight as `1 / (their pick count in this poll)` and persist the result into `restaurant_credit_events`.
+A row can be in two states:
+
+- **Unexercised** (`exercised_at IS NULL`): counts as both a historical vote and as banked credit for `(user, template, restaurant)`. The row's `vote_weight` is the credit's value.
+- **Exercised** (`exercised_at` set): purely historical. No longer contributes to any future tally.
 
 ## daily_participation
 
@@ -149,21 +155,6 @@ Locks a user to one template's poll per local date. Written on the user's first 
 Primary key: `(user_id, scheduled_date)`.
 
 The lock is **sticky** — unpicking every restaurant does not release it. If that turns out to be annoying in practice we can relax the rule later.
-
-## restaurant_credit_events
-
-Append-only log of every accumulated-credit movement, keyed on `(template, restaurant)`. Powers the leaderboard history view and debugging the algorithm.
-
-| column        | type        | notes                                                                        |
-|---------------|-------------|------------------------------------------------------------------------------|
-| id            | uuid (pk)   |                                                                              |
-| seq           | bigserial   | monotonic ordering, independent of `created_at` resolution                   |
-| template_id   | uuid (fk)   |                                                                              |
-| restaurant_id | uuid (fk)   |                                                                              |
-| poll_id       | uuid (fk)   | nullable; null for admin adjustments and future decay sweeps                 |
-| delta         | numeric     | signed                                                                       |
-| reason        | text        | CHECK in (`poll_accumulation`, `winner_reset`, `admin_adjustment`, `decay`)  |
-| created_at    | timestamptz |                                                                              |
 
 ## api_keys
 

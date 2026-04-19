@@ -9,11 +9,11 @@ All routes require login unless noted.
 - **`/`** — dashboard. Shows today's polls across all active templates (one card per template running today), each in its current state.
 - **`/polls/:id`** — the dedicated page for a specific poll. Renders one of four views based on derived status:
   - **Scheduled** — template info, scheduled open time, restaurant list.
-  - **Open** — voting UI. The user adds and removes picks freely; the live preview shows the per-pick weight as `1 / picks_count`. If the user has already participated in another template's poll for this `scheduled_date`, the voting UI is disabled with a clear message pointing at the other poll.
-  - **Closed** — results view. Winner, full ranking by this poll's contribution, and per-restaurant `accumulated_credits` before and after the poll.
+  - **Open** — voting UI. The user adds and removes picks freely; the live preview shows the per-pick weight as `1 / picks_count`. Each option also displays the user's own banked credit for that restaurant in this template (e.g. `+0.5 banked`) — see [polls.md](polls.md#visibility-rules) for the visibility rules. The aggregate live tally is hidden during the open window. If the user has already participated in another template's poll for this `scheduled_date`, the voting UI is disabled with a clear message pointing at the other poll.
+  - **Closed** — results view. Winner, full per-restaurant breakdown (today's votes + banked-credit boost = total tally), and the who-voted-what list.
   - **Cancelled** — clearly labeled, with the reason (`no_votes`, or `admin` with the cancelling user shown).
 - **`/history`** — list of past polls (both closed and cancelled), filterable by template and date. Each row links to the poll's page.
-- **`/leaderboard`** — per-template restaurant leaderboard showing current `accumulated_credits`, plus a timeline of `restaurant_credit_events`. This is the "current rolling-credit stats" view.
+- **`/people`** — per-user "favorite restaurants spectrum": each user's vote counts aggregated by restaurant over a configurable date range. Read-only, accessible to all signed-in users.
 - **`/settings`** — display name, manage API keys (create / revoke), sign out.
 
 ## Admin pages
