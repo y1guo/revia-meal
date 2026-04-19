@@ -23,7 +23,21 @@ Automates the daily lunch-order workflow for the HeyRevia US office: collect vot
 
 ## Tech stack
 
-Next.js (App Router) + TypeScript, Supabase (Postgres + Auth + Storage), Vercel hosting, Google OAuth.
+**Application runtime**
+
+- **Next.js 16** (App Router, Server Components). This major has breaking changes from earlier Next — see [AGENTS.md](AGENTS.md).
+- **React 19**, **TypeScript 5**.
+- **Tailwind CSS 4**. No custom design-token layer.
+- **Supabase** (Postgres + Auth) via **`@supabase/ssr` 0.10** and **`@supabase/supabase-js` 2**. Storage is not used.
+- **Google OAuth 2.0**, brokered by Supabase Auth. The app never handles Google client credentials directly — see [docs/architecture.md](docs/architecture.md).
+- **Node.js 24**, **pnpm 10**, **tsx** for one-off TypeScript scripts.
+- Deployment target: **Vercel** (not yet provisioned).
+
+**Development tooling**
+
+- **Claude Code** — Anthropic's CLI coding agent. Drove most of the implementation. Feature flow documented in [AGENTS.md](AGENTS.md).
+- **Playwright MCP** — browser automation for per-change verification. Not a permanent test suite.
+- **Figma MCP** — integrates the Figma file with the agent for the in-progress design refresh. See [docs/design-brief.md](docs/design-brief.md) and [docs/design/](docs/design/).
 
 ## Docs
 
