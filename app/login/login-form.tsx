@@ -52,36 +52,25 @@ export default function LoginForm({
                 <ThemeToggle size="sm" iconsOnly />
             </div>
             <div className="w-full max-w-[400px] space-y-6">
-                <div className="flex flex-col items-center gap-4">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                        src="/brand/icon.png"
-                        alt=""
-                        aria-hidden="true"
-                        width={72}
-                        height={70}
-                        className="h-[72px] w-auto"
-                    />
+                <div className="flex flex-col items-center gap-3">
                     {/* Wordmark ships as white-on-transparent. In light mode we
                         invert brightness to make it legible on cream. */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src="/brand/wordmark.png"
                         alt="HeyRevia"
-                        width={220}
-                        height={67}
-                        className="h-10 w-auto brightness-0 dark:brightness-100"
+                        width={240}
+                        height={73}
+                        className="h-[52px] w-auto brightness-0 dark:brightness-100"
                     />
-                </div>
-                <div className="space-y-2 text-center">
-                    <h1 className="font-display font-medium text-[1.25rem] text-[color:var(--text-primary)]">
-                        meal
+                    <h1 className="font-display font-semibold tracking-tight text-[2rem] text-[color:var(--text-primary)]">
+                        Meal
                     </h1>
-                    <p className="text-[0.875rem] text-[color:var(--text-secondary)]">
-                        Office lunch polls. Only emails on the allowlist can
-                        sign in.
-                    </p>
                 </div>
+                <p className="text-center text-[0.9375rem] text-[color:var(--text-secondary)]">
+                    Office lunch polls. Only emails on the allowlist can sign
+                    in.
+                </p>
                 {message && (
                     <div
                         role="alert"

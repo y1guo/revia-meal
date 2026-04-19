@@ -7,32 +7,36 @@ type BrandProps = {
 }
 
 /**
- * HeyRevia icon + "meal" wordmark. The icon is the company mark; "meal" is
- * Fraunces, identifying the app.
+ * HeyRevia wordmark + "Meal" app label. The wordmark PNG ships white-on-
+ * transparent; we invert brightness in light mode so it reads on cream, and
+ * leave it as-is in dark mode.
  */
 export function Brand({ href = '/', className }: BrandProps) {
     return (
         <Link
             href={href}
             className={cn(
-                'inline-flex items-center gap-2',
-                'font-display font-semibold tracking-tight',
-                'text-[1.125rem] md:text-[1.25rem]',
+                'inline-flex items-center gap-3',
                 'text-[color:var(--text-primary)]',
                 className,
             )}
-            aria-label="HeyRevia meal — home"
+            aria-label="HeyRevia Meal — home"
         >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-                src="/brand/icon.png"
-                alt=""
-                aria-hidden="true"
-                width={28}
-                height={27}
-                className="h-7 w-auto"
+                src="/brand/wordmark.png"
+                alt="HeyRevia"
+                width={120}
+                height={36}
+                className="h-[26px] w-auto brightness-0 dark:brightness-100"
             />
-            <span>meal</span>
+            <span
+                aria-hidden="true"
+                className="h-5 w-px bg-[color:var(--border-subtle)]"
+            />
+            <span className="font-display font-semibold tracking-tight text-[1.125rem] md:text-[1.25rem]">
+                Meal
+            </span>
         </Link>
     )
 }
