@@ -17,3 +17,14 @@ Feature work on this project follows a seven-step flow between the user and the 
 7. On the user's word, the agent creates the commit.
 
 Steps 2–5 are driven by the agent. After finishing each of those steps — before moving to the next — the agent must self-review its own output: reread docs, read back `git diff` and scan new files for code changes, check that tests actually asserted what was claimed and nothing else regressed. Look for dead code, redundant casts, unused imports, typos, auth gaps, stale references, race conditions, half-finished paths, leftover logs. Iterate until the review surfaces nothing, then advance. Do not hand off to the user problems a quick self-review would have caught. No separate pre-commit pass is needed — if each step was reviewed clean, the commit is already clean.
+
+# UI / UX work: honor the design brief
+
+Any change to user-facing surfaces (pages, forms, buttons, copy, states, motion, theming, nav) must be consistent with [docs/design-brief.md](docs/design-brief.md). That doc is the source of truth for design direction, responsive targets, theme modes, motion expectations, in-UI guidance patterns, and the page inventory with allowed states.
+
+Two invariants worth surfacing here because they bite often:
+
+- **No blocking onboarding.** Never add multi-step tutorials, coach marks that disable the rest of the app, or modal takeovers that trap focus before letting the user navigate. Progressive disclosure only — tooltips, helper text, info icons, warm empty states. See [design-brief.md §3 and §6.8](docs/design-brief.md).
+- **No native system UI.** `window.confirm()`, unstyled `<select>`, default date pickers, etc. must be replaced with custom components that match the brand. If you're about to reach for a native dialog, build or reuse the project's modal primitive instead.
+
+When in doubt, read the relevant section of the design brief first.

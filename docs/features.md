@@ -15,6 +15,7 @@ All routes require login unless noted.
 - **`/history`** — list of past polls (both closed and cancelled), filterable by template and date. Each row links to the poll's page.
 - **`/people`** — per-user "favorite restaurants spectrum": each user's vote counts aggregated by restaurant over a configurable date range. Read-only, accessible to all signed-in users.
 - **`/settings`** — display name, manage API keys (create / revoke), sign out.
+- **`/docs`** *(planned, not yet built)* — in-app user manual. Explains the polling mechanism, rolling credits, how-to guides, glossary, and FAQ in end-user-friendly language. Content sources: [polls.md](polls.md), this file, and relevant sections of [design-brief.md](design-brief.md). Deep-link anchors are a hard requirement — tooltips and info icons elsewhere in the UI will link into specific sections. Reading-surface layout is a design task, see [design-brief.md §5.12](design-brief.md).
 
 ## Admin pages
 - **`/admin/users`** — list, add, deactivate, change role, delete allowlist entries.
