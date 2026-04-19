@@ -20,7 +20,7 @@ All routes require login unless noted.
 - **`/admin/users`** — list, add, deactivate, change role, delete allowlist entries.
 - **`/admin/restaurants`** — CRUD on the restaurant catalog.
 - **`/admin/templates`** — CRUD on poll templates: name, schedule, assigned restaurants (pulled from the catalog).
-- **`/admin/polls`** — list upcoming and recent poll instances. Supports **cancel** on any poll in `scheduled` or `open` state (records `cancelled_by`).
+- **`/admin/polls`** — list upcoming and recent poll instances. Supports **cancel** on any non-cancelled poll — `scheduled`, `open`, or even `closed`. Cancelling a closed poll un-exercises any credits it consumed, clears `winner_id`/`finalized_at`, and records `cancelled_by`. See [polls.md](polls.md#cancellation) for the full unwind.
 
 ## Access control
 - All non-auth routes require a valid session for a user that is currently `is_active = true`.
@@ -33,5 +33,5 @@ See [polls.md](polls.md) for the full spec. In short:
 
 - **Lazy instantiation.** Any request that needs "today's poll" for an active template creates the row if no poll (cancelled or otherwise) exists yet for that date. The partial unique index on `(template_id, scheduled_date) WHERE cancelled_at IS NULL` makes concurrent creates safe. Cancelled polls are **not** auto-resurrected.
 - **Lazy finalization.** The first request to touch a poll after `closes_at` either finalizes it (winner + credit movements in one transaction) or auto-cancels it if there are no votes.
-- **Cancellation.** Admins can cancel any `scheduled` or `open` poll from `/admin/polls`. Cancelled polls move no credits.
+- **Cancellation.** Admins can cancel any non-cancelled poll from `/admin/polls` — scheduled, open, or closed. Cancelling a closed poll un-exercises the credits it consumed so affected voters' banked balances are restored. Cancelled polls are excluded from all credit queries and are never auto-resurrected.
 - **No backfill** for days the service was offline.

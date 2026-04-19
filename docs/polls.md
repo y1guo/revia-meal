@@ -26,6 +26,8 @@ scheduled ──(now ≥ opens_at)──▶ open ──(now ≥ closes_at, has v
     └─(admin cancel)───────────────────────────────────────────────▶ cancelled
 ```
 
+Additionally, an admin can cancel a `closed` poll — see [Cancellation](#cancellation). That transition un-exercises any credits the poll had consumed.
+
 Status is derived from timestamps on the poll row (`opens_at`, `closes_at`, `finalized_at`, `cancelled_at`) rather than a mutable enum — see [data-model.md](data-model.md#polls).
 
 ### Lazy instantiation
@@ -57,7 +59,9 @@ The atomic claim on `polls` is the race-safety pivot: only one finalizer can fli
 A poll can be cancelled two ways:
 
 - **Automatic** — no votes at `closes_at`. The finalization path writes `cancelled_at` and `cancellation_reason = 'no_votes'`. No credit movement.
-- **Admin** — from `/admin/polls`, an admin may cancel a poll while its status is `scheduled` or `open`. The action writes `cancelled_at`, `cancellation_reason = 'admin'`, and `cancelled_by`. Any votes already cast are simply ignored — no credit movement.
+- **Admin** — from `/admin/polls`, an admin may cancel any poll that isn't already cancelled — `scheduled`, `open`, **or `closed`**. The action writes `cancelled_at`, `cancellation_reason = 'admin'`, and `cancelled_by`. If the poll was `closed`, it also clears `finalized_at`/`winner_id` and un-exercises every vote whose `exercised_poll_id` points at this poll, returning those banked balances to the affected voters. `daily_participation` rows for this `(template, scheduled_date)` are deleted so affected users can re-participate if the poll is later re-instantiated.
+
+Banking queries always exclude votes whose parent poll has `cancelled_at IS NOT NULL`, so a cancelled poll never contributes credit regardless of what state it was in when cancelled. `poll_results` snapshots are preserved (cheap audit trail) but don't drive any live logic.
 
 Cancelled polls remain visible in history with a clear cancelled label. A cancelled poll cannot itself be reopened. The schema permits a fresh poll for the same date (the cancelled row sits outside the partial unique index), but actually creating it is a deliberate admin action — not something lazy instantiation does on its own. That admin "re-instantiate" action is a roadmap item, not MVP.
 
