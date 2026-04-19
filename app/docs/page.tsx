@@ -1,4 +1,8 @@
 import Link from 'next/link'
+import { signOut } from '@/app/actions'
+import { AppShell } from '@/components/shell/AppShell'
+import { PageHeader } from '@/components/shell/PageHeader'
+import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
 
 type TocItem = { id: string; label: string; children?: TocItem[] }
@@ -52,15 +56,19 @@ const TOC: TocItem[] = [
 function Toc({ items, depth = 0 }: { items: TocItem[]; depth?: number }) {
     return (
         <ul
-            className={
+            className={cn(
+                'space-y-1',
                 depth === 0
-                    ? 'space-y-1 text-sm'
-                    : 'ml-4 mt-1 space-y-1 text-xs text-neutral-500'
-            }
+                    ? 'text-[0.875rem]'
+                    : 'ml-3 mt-1 text-[0.8125rem] text-[color:var(--text-secondary)]',
+            )}
         >
             {items.map((item) => (
                 <li key={item.id}>
-                    <a href={`#${item.id}`} className="hover:underline">
+                    <a
+                        href={`#${item.id}`}
+                        className="text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] transition-colors duration-150"
+                    >
                         {item.label}
                     </a>
                     {item.children && (
@@ -73,34 +81,30 @@ function Toc({ items, depth = 0 }: { items: TocItem[]; depth?: number }) {
 }
 
 export default async function DocsPage() {
-    await requireUser()
+    const user = await requireUser()
 
     return (
-        <main className="p-8 max-w-6xl mx-auto">
-            <p className="text-sm">
-                <Link href="/" className="underline">
-                    ← Today&apos;s polls
-                </Link>
-            </p>
-            <header className="mt-4 mb-8 space-y-1">
-                <h1 className="text-3xl font-semibold">Guide</h1>
-                <p className="text-sm text-neutral-500">
-                    How revia-meal works, what banked credits are, and
-                    everything else you might want to know.
-                </p>
-            </header>
+        <AppShell
+            user={user}
+            signOutAction={signOut}
+            maxWidthClassName="max-w-[1100px]"
+        >
+            <PageHeader
+                title="Guide"
+                subtitle="How revia-meal works, what banked credits are, and everything else you might want to know."
+            />
 
             <div className="flex gap-10">
-                <aside className="hidden lg:block w-64 shrink-0 sticky top-8 self-start max-h-[calc(100vh-4rem)] overflow-y-auto">
+                <aside className="hidden lg:block w-60 shrink-0 sticky top-24 self-start max-h-[calc(100vh-8rem)] overflow-y-auto">
                     <nav aria-label="Table of contents">
-                        <p className="text-xs font-medium text-neutral-500 mb-2 uppercase tracking-wide">
+                        <p className="text-[0.6875rem] font-medium text-[color:var(--text-tertiary)] mb-3 uppercase tracking-wider">
                             Contents
                         </p>
                         <Toc items={TOC} />
                     </nav>
                 </aside>
 
-                <article className="flex-1 max-w-3xl space-y-12 prose-content">
+                <article className="docs-prose flex-1 max-w-[720px] space-y-12">
                     <Section id="overview" title="How this works in 60 seconds">
                         <p>
                             revia-meal is an internal lunch-poll app. Every weekday
@@ -648,20 +652,60 @@ export default async function DocsPage() {
             </div>
 
             <style>{`
-                .prose-content h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
-                .prose-content h3 { font-size: 1.125rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; }
-                .prose-content p { line-height: 1.65; color: inherit; }
-                .prose-content ul, .prose-content ol { list-style: disc; padding-left: 1.5rem; line-height: 1.65; }
-                .prose-content ol { list-style: decimal; }
-                .prose-content li + li { margin-top: 0.25rem; }
-                .prose-content code { font-size: 0.875em; background: rgb(245 245 245); padding: 0.1rem 0.35rem; border-radius: 0.25rem; }
-                :is(.dark) .prose-content code { background: rgb(23 23 23); }
-                .prose-content a { text-decoration: underline; }
-                .prose-content dl dt { font-weight: 600; }
-                .prose-content dl dd { color: rgb(82 82 82); margin-top: 0.15rem; }
-                :is(.dark) .prose-content dl dd { color: rgb(163 163 163); }
+                .docs-prose h2 {
+                    font-family: var(--font-display);
+                    font-size: 1.5rem;
+                    font-weight: 500;
+                    color: var(--text-primary);
+                    margin-bottom: 0.5rem;
+                    border-bottom: 2px solid var(--accent-brand);
+                    padding-bottom: 0.5rem;
+                }
+                .docs-prose h3 {
+                    font-family: var(--font-sans);
+                    font-size: 1.125rem;
+                    font-weight: 600;
+                    color: var(--text-primary);
+                    margin-top: 1.75rem;
+                    margin-bottom: 0.5rem;
+                }
+                .docs-prose p {
+                    line-height: 1.7;
+                    color: var(--text-primary);
+                }
+                .docs-prose ul, .docs-prose ol {
+                    list-style: disc;
+                    padding-left: 1.5rem;
+                    line-height: 1.7;
+                    color: var(--text-primary);
+                }
+                .docs-prose ol { list-style: decimal; }
+                .docs-prose li + li { margin-top: 0.3rem; }
+                .docs-prose code {
+                    font-family: var(--font-mono);
+                    font-size: 0.875em;
+                    background: var(--surface-sunken);
+                    color: var(--text-primary);
+                    padding: 0.15rem 0.35rem;
+                    border-radius: var(--radius-sm);
+                }
+                .docs-prose a {
+                    color: var(--accent-brand);
+                    text-decoration: underline;
+                    text-underline-offset: 2px;
+                }
+                .docs-prose a:hover { text-decoration-thickness: 2px; }
+                .docs-prose dl dt {
+                    font-weight: 600;
+                    color: var(--text-primary);
+                }
+                .docs-prose dl dd {
+                    color: var(--text-secondary);
+                    margin-top: 0.15rem;
+                }
+                .docs-prose strong { color: var(--text-primary); }
             `}</style>
-        </main>
+        </AppShell>
     )
 }
 
@@ -722,9 +766,11 @@ function FaqItem({
     children: React.ReactNode
 }) {
     return (
-        <details className="border rounded-md p-3 [&[open]]:bg-neutral-50 dark:[&[open]]:bg-neutral-900">
-            <summary className="cursor-pointer font-medium">{question}</summary>
-            <div className="mt-2 text-sm">{children}</div>
+        <details className="border border-[color:var(--border-subtle)] rounded-[var(--radius-md)] p-3 [&[open]]:bg-[color:var(--surface-raised)]">
+            <summary className="cursor-pointer font-medium text-[color:var(--text-primary)]">
+                {question}
+            </summary>
+            <div className="mt-2 text-[0.9375rem]">{children}</div>
         </details>
     )
 }
