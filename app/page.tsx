@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import { getTodaysDashboard, type PollStatus } from '@/lib/polls'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { signOut } from './actions'
 
 export default async function Home() {
@@ -49,10 +51,10 @@ export default async function Home() {
             <section className="space-y-3">
                 <h2 className="text-lg font-medium">Today&apos;s polls</h2>
                 {entries.length === 0 ? (
-                    <p className="text-sm text-neutral-500">
-                        No polls scheduled for today. Check back tomorrow, or ask an admin to activate a
-                        template whose schedule includes today.
-                    </p>
+                    <EmptyState
+                        title="Nothing on the menu today."
+                        body="No templates are scheduled for today. Ask an admin to activate one whose schedule includes today — or check back tomorrow."
+                    />
                 ) : (
                     <div className="grid gap-3 sm:grid-cols-2">
                         {entries.map(({ template, poll, status }) => (
@@ -107,26 +109,4 @@ function formatTime(isoString: string): string {
         hour: 'numeric',
         minute: '2-digit',
     })
-}
-
-const STATUS_STYLES: Record<PollStatus, string> = {
-    scheduled:
-        'bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200',
-    open: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200',
-    pending_close:
-        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200',
-    closed:
-        'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200',
-    cancelled:
-        'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200',
-}
-
-function StatusBadge({ status }: { status: PollStatus }) {
-    return (
-        <span
-            className={`text-xs rounded-full px-2 py-0.5 ${STATUS_STYLES[status]}`}
-        >
-            {status.replace('_', ' ')}
-        </span>
-    )
 }
