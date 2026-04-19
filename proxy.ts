@@ -1,16 +1,20 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/proxy'
 
-const PUBLIC_PREFIXES = ['/login', '/auth']
+// Paths the proxy should skip session-based auth for.
+//   /login, /auth: genuinely public
+//   /api: enforces its own Bearer-token auth inside each route handler,
+//     so the cookie-session redirect would fight with API clients.
+const PROXY_BYPASS_PREFIXES = ['/login', '/auth', '/api']
 
 export async function proxy(request: NextRequest) {
     const { response, user } = await updateSession(request)
     const { pathname } = request.nextUrl
 
-    const isPublic = PUBLIC_PREFIXES.some(
+    const shouldBypass = PROXY_BYPASS_PREFIXES.some(
         (p) => pathname === p || pathname.startsWith(p + '/'),
     )
-    if (isPublic) return response
+    if (shouldBypass) return response
 
     if (!user) {
         const url = request.nextUrl.clone()

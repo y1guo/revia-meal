@@ -162,6 +162,7 @@ export type DashboardEntry = {
     template: TemplateRow
     poll: {
         id: string
+        scheduled_date: string
         opens_at: string
         closes_at: string
         finalized_at: string | null
@@ -198,7 +199,7 @@ export async function getTodaysDashboard(): Promise<DashboardEntry[]> {
     const { data: polls } = await admin
         .from('polls')
         .select(
-            'id, opens_at, closes_at, finalized_at, cancelled_at, cancellation_reason',
+            'id, scheduled_date, opens_at, closes_at, finalized_at, cancelled_at, cancellation_reason',
         )
         .in('id', validPollIds)
 
