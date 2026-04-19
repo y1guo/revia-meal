@@ -1,5 +1,7 @@
 # Tokens & setup
 
+> **Palette superseded.** §1's Fresh Market color scale (cream / espresso / saffron / …) has been replaced by the Boba / Lime / Sunny palette defined in [palette-refresh.md](palette-refresh.md). The rest of this doc (typography, spacing, radii, motion, theme-mode plumbing, icon library, breakpoints, a11y audit process) still applies unchanged. Read palette-refresh.md first, then return here for the non-color setup.
+
 Concrete translation of [direction.md](direction.md) §2–12 into code-ready configuration. Pastable into `app/globals.css`, `app/layout.tsx`, and a handful of new files.
 
 Scope: colors, typography, spacing, radii, elevation, motion, icon library, theme-mode plumbing. Component-level specs live in [components.md](components.md); per-page layouts live in [pages.md](pages.md).

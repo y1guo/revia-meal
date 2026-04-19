@@ -1,5 +1,7 @@
 # Design direction
 
+> **Palette updated.** §1's "Fresh Market" cream/espresso/saffron direction has been replaced by a Boba Blue / Lunch Lime / Sunny Pick palette (owner-supplied). See [palette-refresh.md](palette-refresh.md) for the current color tokens, rationale, and a11y-derived variants. The aesthetic still skews warm, editorial, and food-focused — just expressed through fresh teal/green/yellow instead of warm neutrals. Typography, layout, motion, and illustration kit described below remain the reference.
+
 Companion to [../design-brief.md](../design-brief.md). The brief says *what* to build; this doc proposes *how it should look, feel, and move* — answering every open decision in §12 of the brief. Read the brief first.
 
 This is a **proposal for alignment**, not a finished system. Nothing here is locked until the product owner signs off; §12 items in the brief were explicitly handed to the designer, so each gets a pick + rationale + the alternatives I considered.
