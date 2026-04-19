@@ -1,5 +1,14 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Award, Loader2 } from 'lucide-react'
+import { signOut } from '@/app/actions'
+import { AppShell } from '@/components/shell/AppShell'
+import { PageHeader } from '@/components/shell/PageHeader'
+import { Avatar } from '@/components/ui/Avatar'
+import { Card } from '@/components/ui/Card'
+import { Chip } from '@/components/ui/Chip'
+import { StatusBadge } from '@/components/ui/StatusBadge'
+import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
@@ -31,6 +40,21 @@ type Restaurant = {
     notes: string | null
 }
 
+type ClosedTally = {
+    restaurant_id: string
+    today_votes: number
+    banked_boost: number
+    total_tally: number
+}
+
+type VoterPick = {
+    user_id: string
+    restaurant_id: string
+    vote_weight: number
+    display_name: string | null
+    email: string
+}
+
 const POLL_SELECT =
     'id, template_id, scheduled_date, opens_at, closes_at, finalized_at, cancelled_at, cancellation_reason, cancelled_by, winner_id'
 
@@ -48,10 +72,6 @@ export default async function PollPage({ params }: { params: Params }) {
     if (!initial) notFound()
     let poll = initial as PollRow
 
-    // Lazy finalize on visit if the close window has elapsed. We don't re-
-    // fetch the poll afterward — Next.js dedupes identical server fetches
-    // within a single render, so the second read would return stale (pre-
-    // finalize) data. Apply the finalize result locally instead.
     if (getPollStatus(poll) === 'pending_close') {
         const result = await finalizePoll(poll.id)
         const now = new Date().toISOString()
@@ -115,10 +135,6 @@ export default async function PollPage({ params }: { params: Params }) {
 
     const status = getPollStatus(poll)
 
-    // For Open view: user's own banked credits per restaurant in this template
-    // (excluding any rows from this poll — those are today's vote, shown via
-    // the checkbox state, not as "banked from prior polls"). Also exclude
-    // cancelled-poll votes — those didn't really happen.
     const userBankedByRestaurant = new Map<string, number>()
     if (status === 'open' && restaurantIds.length > 0) {
         const { data: cancelledRows } = await admin
@@ -148,20 +164,6 @@ export default async function PollPage({ params }: { params: Params }) {
         }
     }
 
-    // For Closed view: snapshotted breakdown + per-restaurant voter list.
-    type ClosedTally = {
-        restaurant_id: string
-        today_votes: number
-        banked_boost: number
-        total_tally: number
-    }
-    type VoterPick = {
-        user_id: string
-        restaurant_id: string
-        vote_weight: number
-        display_name: string | null
-        email: string
-    }
     let closedTallies: ClosedTally[] = []
     let closedVoters: VoterPick[] = []
     if (status === 'closed' || status === 'cancelled') {
@@ -206,49 +208,48 @@ export default async function PollPage({ params }: { params: Params }) {
             user_id: v.user_id as string,
             restaurant_id: v.restaurant_id as string,
             vote_weight: Number(v.vote_weight),
-            display_name: userMap.get(v.user_id as string)?.display_name ?? null,
+            display_name:
+                userMap.get(v.user_id as string)?.display_name ?? null,
             email: userMap.get(v.user_id as string)?.email ?? '',
         }))
     }
 
     return (
-        <main className="p-8 space-y-6 max-w-3xl">
-            <p className="text-sm">
-                <Link href="/" className="underline">
-                    ← Today&apos;s polls
-                </Link>
-            </p>
-            <header className="space-y-1">
-                <h1 className="text-2xl font-semibold">
-                    {template?.name ?? 'Poll'}
-                </h1>
-                <p className="text-sm text-neutral-500">
-                    {formatDate(poll.scheduled_date)} ·{' '}
-                    <StatusBadge status={status} />
+        <AppShell
+            user={user}
+            signOutAction={signOut}
+            maxWidthClassName="max-w-[880px]"
+        >
+            <Link
+                href="/"
+                className="inline-flex items-center text-[0.8125rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] mb-3"
+            >
+                ← Today&apos;s polls
+            </Link>
+            <PageHeader
+                title={template?.name ?? 'Poll'}
+                subtitle={
+                    <span className="flex flex-wrap items-center gap-2">
+                        <span>{formatDate(poll.scheduled_date)}</span>
+                        <StatusBadge status={status} />
+                    </span>
+                }
+            />
+            {template?.description && (
+                <p className="text-[0.875rem] text-[color:var(--text-secondary)] -mt-3 mb-6">
+                    {template.description}
                 </p>
-                {template?.description && (
-                    <p className="text-sm text-neutral-500">
-                        {template.description}
-                    </p>
-                )}
-            </header>
+            )}
 
             <StatusDetails poll={poll} status={status} />
 
-            <section className="space-y-2">
-                <h2 className="text-lg font-medium">
-                    {status === 'open' ? 'Your vote' : 'Ballot'}
-                </h2>
+            <section className="mt-6 space-y-4">
                 {restaurants.length === 0 ? (
-                    <p className="text-sm text-neutral-500">
+                    <p className="text-[0.875rem] text-[color:var(--text-secondary)]">
                         No restaurants were on this poll&apos;s ballot.
                     </p>
                 ) : status === 'open' && otherTemplateId ? (
-                    <p className="text-sm text-amber-700 dark:text-amber-400">
-                        You&apos;ve already voted in
-                        {otherTemplateName ? ` "${otherTemplateName}"` : ' another poll'}{' '}
-                        today. You can only participate in one poll per day.
-                    </p>
+                    <ConflictState templateName={otherTemplateName} />
                 ) : status === 'open' ? (
                     <VoteForm
                         pollId={poll.id}
@@ -257,6 +258,7 @@ export default async function PollPage({ params }: { params: Params }) {
                                 id: r.id,
                                 name: r.name,
                                 notes: r.notes,
+                                doordash_url: r.doordash_url,
                             }),
                         )}
                         initialPicks={initialPicks}
@@ -273,57 +275,80 @@ export default async function PollPage({ params }: { params: Params }) {
                         currentUserId={user.id}
                     />
                 ) : (
-                    <ul className="border rounded-md divide-y">
-                        {restaurants.map((r) => {
-                            const voted = initialPicks.includes(r.id)
-                            return (
-                                <li key={r.id} className="p-3 space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium">{r.name}</span>
-                                        {voted && (
-                                            <span className="text-xs rounded-full px-2 py-0.5 bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200">
-                                                you voted
-                                            </span>
-                                        )}
-                                        {r.doordash_url && (
-                                            <a
-                                                href={r.doordash_url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="text-xs underline text-neutral-500"
-                                            >
-                                                doordash
-                                            </a>
-                                        )}
-                                    </div>
-                                    {r.notes && (
-                                        <p className="text-xs text-neutral-500">
-                                            {r.notes}
-                                        </p>
-                                    )}
-                                </li>
-                            )
-                        })}
-                    </ul>
+                    <BallotPreview
+                        restaurants={restaurants}
+                        userPickIds={initialPicks}
+                        showYouVoted={status === 'cancelled'}
+                    />
                 )}
             </section>
-        </main>
+        </AppShell>
     )
 }
 
-type ClosedTally = {
-    restaurant_id: string
-    today_votes: number
-    banked_boost: number
-    total_tally: number
+function ConflictState({ templateName }: { templateName: string | null }) {
+    return (
+        <Card className="text-center py-10">
+            <div className="text-5xl mb-3" aria-hidden="true">
+                📅
+            </div>
+            <h2 className="font-display font-medium text-[1.125rem] text-[color:var(--text-primary)] mb-2">
+                You&apos;ve already voted in{' '}
+                {templateName ? `"${templateName}"` : 'another poll'} today.
+            </h2>
+            <p className="text-[0.875rem] text-[color:var(--text-secondary)] max-w-[320px] mx-auto">
+                You can only participate in one poll per day.
+            </p>
+        </Card>
+    )
 }
 
-type VoterPick = {
-    user_id: string
-    restaurant_id: string
-    vote_weight: number
-    display_name: string | null
-    email: string
+function BallotPreview({
+    restaurants,
+    userPickIds,
+    showYouVoted,
+}: {
+    restaurants: Restaurant[]
+    userPickIds: string[]
+    showYouVoted: boolean
+}) {
+    const pickSet = new Set(userPickIds)
+    return (
+        <Card className="p-0 overflow-hidden">
+            <ul className="divide-y divide-[color:var(--border-subtle)]">
+                {restaurants.map((r) => {
+                    const voted = showYouVoted && pickSet.has(r.id)
+                    return (
+                        <li key={r.id} className="px-4 py-3 md:px-5 md:py-4">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-medium text-[color:var(--text-primary)]">
+                                    {r.name}
+                                </span>
+                                {voted && (
+                                    <Chip variant="neutral">you voted</Chip>
+                                )}
+                                {r.doordash_url && (
+                                    <a
+                                        href={r.doordash_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[0.8125rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] underline underline-offset-2"
+                                    >
+                                        DoorDash ↗
+                                    </a>
+                                )}
+                            </div>
+                            {r.notes && (
+                                <p className="mt-1 text-[0.8125rem] text-[color:var(--text-secondary)]">
+                                    {r.notes}
+                                </p>
+                            )}
+                        </li>
+                    )
+                })}
+            </ul>
+        </Card>
+    )
 }
 
 function ClosedBreakdown({
@@ -346,7 +371,6 @@ function ClosedBreakdown({
             votersByRestaurant.set(v.restaurant_id, [])
         votersByRestaurant.get(v.restaurant_id)!.push(v)
     }
-    // Sort restaurants by total_tally desc, winner first on ties.
     const ordered = restaurants.slice().sort((a, b) => {
         const ta = tallyMap.get(a.id)?.total_tally ?? 0
         const tb = tallyMap.get(b.id)?.total_tally ?? 0
@@ -357,152 +381,204 @@ function ClosedBreakdown({
     })
 
     return (
-        <div className="space-y-2">
-            <p className="text-xs text-neutral-500">
-                Total tally = today&apos;s votes + banked boost from past polls.{' '}
-                <Link href="/docs#rolling-credits" className="underline">
-                    How this works →
-                </Link>
-            </p>
-            <ul className="border rounded-md divide-y">
-                {ordered.map((r) => {
+        <div className="space-y-3">
+            {ordered.map((r) => {
                 const t = tallyMap.get(r.id)
                 const rVoters = votersByRestaurant.get(r.id) ?? []
                 const isWinner = r.id === winnerId
                 return (
-                    <li
+                    <Card
                         key={r.id}
-                        className={`p-3 space-y-2 ${
-                            isWinner
-                                ? 'bg-green-50 dark:bg-green-950'
-                                : ''
-                        }`}
+                        className={cn(
+                            'p-4 md:p-5 space-y-3',
+                            isWinner &&
+                                'border-2 border-[color:var(--accent-brand)]/40 bg-[color:var(--banked-bg)]',
+                        )}
                     >
-                        <div className="flex items-center gap-2">
-                            <span className="font-medium">{r.name}</span>
+                        <div className="flex flex-wrap items-center gap-2">
                             {isWinner && (
-                                <span className="text-xs rounded-full px-2 py-0.5 bg-green-200 text-green-800 dark:bg-green-800 dark:text-green-100">
-                                    winner
-                                </span>
+                                <Award
+                                    size={20}
+                                    strokeWidth={1.75}
+                                    className="text-[color:var(--accent-brand)]"
+                                    aria-hidden="true"
+                                />
                             )}
+                            <h3
+                                className={cn(
+                                    'font-display font-medium',
+                                    isWinner
+                                        ? 'text-[1.125rem] text-[color:var(--text-primary)]'
+                                        : 'text-[1rem] text-[color:var(--text-primary)]',
+                                )}
+                            >
+                                {r.name}
+                            </h3>
                             {r.doordash_url && (
                                 <a
                                     href={r.doordash_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-xs underline text-neutral-500"
+                                    className="text-[0.8125rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] underline underline-offset-2"
                                 >
-                                    doordash
+                                    DoorDash ↗
                                 </a>
                             )}
                         </div>
                         {r.notes && (
-                            <p className="text-xs text-neutral-500">{r.notes}</p>
+                            <p className="text-[0.8125rem] text-[color:var(--text-secondary)]">
+                                {r.notes}
+                            </p>
                         )}
                         {t ? (
-                            <p className="text-xs text-neutral-600 dark:text-neutral-400 tabular-nums">
-                                today {formatNum(t.today_votes)} +
-                                banked {formatNum(t.banked_boost)} ={' '}
-                                <strong>{formatNum(t.total_tally)}</strong>
+                            <p className="text-[0.875rem] font-mono tabular-nums text-[color:var(--text-secondary)]">
+                                today {formatNum(t.today_votes)} + banked{' '}
+                                {formatNum(t.banked_boost)} ={' '}
+                                <span className="font-semibold text-[color:var(--text-primary)]">
+                                    total {formatNum(t.total_tally)}
+                                </span>
                             </p>
                         ) : (
-                            <p className="text-xs text-neutral-500">
-                                No tally recorded.
+                            <p className="text-[0.8125rem] text-[color:var(--text-tertiary)]">
+                                no votes today
                             </p>
                         )}
-                        {rVoters.length > 0 ? (
-                            <p className="text-xs text-neutral-500">
-                                Voters:{' '}
-                                {rVoters.map((v, i) => {
+                        {rVoters.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pt-1">
+                                {rVoters.map((v) => {
                                     const isMe = v.user_id === currentUserId
-                                    const name = v.display_name || v.email
+                                    const name = isMe
+                                        ? 'You'
+                                        : v.display_name || v.email
                                     return (
-                                        <span key={v.user_id}>
-                                            {i > 0 ? ', ' : ''}
-                                            <span
-                                                className={
-                                                    isMe
-                                                        ? 'font-medium text-neutral-700 dark:text-neutral-300'
-                                                        : ''
-                                                }
-                                            >
-                                                {name}
-                                                {isMe ? ' (you)' : ''}
-                                            </span>{' '}
-                                            <span className="tabular-nums">
-                                                ({formatNum(v.vote_weight)})
-                                            </span>
-                                        </span>
+                                        <VoterChip
+                                            key={v.user_id}
+                                            name={name}
+                                            email={v.email}
+                                            weight={v.vote_weight}
+                                            highlight={isMe}
+                                        />
                                     )
                                 })}
-                            </p>
-                        ) : (
-                            <p className="text-xs text-neutral-500">
-                                No votes today.
-                            </p>
+                            </div>
                         )}
-                    </li>
+                    </Card>
                 )
             })}
-            </ul>
         </div>
     )
 }
 
-function formatNum(n: number): string {
-    return n.toFixed(2).replace(/\.?0+$/, '')
+function VoterChip({
+    name,
+    email,
+    weight,
+    highlight,
+}: {
+    name: string
+    email: string
+    weight: number
+    highlight: boolean
+}) {
+    return (
+        <span
+            className={cn(
+                'inline-flex items-center gap-1.5',
+                'h-7 pl-1 pr-2 rounded-full',
+                'bg-[color:var(--surface-sunken)]',
+                'text-[0.75rem] font-medium text-[color:var(--text-primary)]',
+                highlight &&
+                    'ring-2 ring-[color:var(--accent-brand)] ring-offset-1 ring-offset-[color:var(--surface-raised)]',
+            )}
+        >
+            <Avatar name={name === 'You' ? null : name} email={email} size={20} />
+            <span>{name}</span>
+            <span className="font-mono tabular-nums text-[color:var(--text-secondary)]">
+                ({formatNum(weight)})
+            </span>
+        </span>
+    )
 }
 
-function StatusDetails({ poll, status }: { poll: PollRow; status: PollStatus }) {
+function StatusDetails({
+    poll,
+    status,
+}: {
+    poll: PollRow
+    status: PollStatus
+}) {
     switch (status) {
         case 'scheduled':
             return (
-                <p className="text-sm">
-                    This poll opens at{' '}
-                    <strong>{formatDateTime(poll.opens_at)}</strong> and closes at{' '}
-                    <strong>{formatDateTime(poll.closes_at)}</strong>.
+                <p className="text-[0.9375rem] text-[color:var(--text-primary)]">
+                    Opens at{' '}
+                    <strong className="font-medium">
+                        {formatDateTime(poll.opens_at)}
+                    </strong>{' '}
+                    · closes at{' '}
+                    <strong className="font-medium">
+                        {formatDateTime(poll.closes_at)}
+                    </strong>
+                    .
                 </p>
             )
         case 'open':
             return (
-                <p className="text-sm">
-                    Voting is <strong>open</strong>. Closes at{' '}
-                    <strong>{formatDateTime(poll.closes_at)}</strong>.
+                <p className="font-display font-medium text-[1.125rem] text-[color:var(--text-primary)]">
+                    Voting is{' '}
+                    <span className="text-[color:var(--status-open-fg)]">
+                        open
+                    </span>
+                    . Closes at{' '}
+                    <span className="font-sans">
+                        {formatDateTime(poll.closes_at)}
+                    </span>
+                    .
                 </p>
             )
         case 'pending_close':
-            // Should be rare — the page calls finalizePoll before rendering.
-            // Could happen if finalize lost a race or hit a transient error.
             return (
-                <p className="text-sm text-neutral-500">
-                    The voting window has ended. Finalization is in progress —
-                    refresh in a moment.
-                </p>
+                <Card className="flex items-start gap-3 bg-[color:var(--status-pending-bg)] border-[color:var(--status-pending-fg)]/20">
+                    <Loader2
+                        size={20}
+                        strokeWidth={1.75}
+                        className="animate-spin mt-0.5 text-[color:var(--status-pending-fg)]"
+                        aria-hidden="true"
+                    />
+                    <div className="space-y-1">
+                        <p className="font-display font-medium text-[color:var(--text-primary)]">
+                            Finalizing…
+                        </p>
+                        <p className="text-[0.875rem] text-[color:var(--text-secondary)]">
+                            The voting window ended a moment ago. Refresh in a
+                            second — results are being tallied.
+                        </p>
+                    </div>
+                </Card>
             )
         case 'closed':
             return (
-                <p className="text-sm text-neutral-500">
-                    This poll closed at{' '}
-                    <strong>{formatDateTime(poll.closes_at)}</strong>. The
-                    breakdown below shows today&apos;s votes plus each voter&apos;s
+                <p className="text-[0.9375rem] text-[color:var(--text-secondary)]">
+                    Closed at{' '}
+                    <span className="font-medium text-[color:var(--text-primary)]">
+                        {formatDateTime(poll.closes_at)}
+                    </span>
+                    . Breakdown shows today&apos;s votes plus each voter&apos;s
                     banked credit contribution.
                 </p>
             )
         case 'cancelled':
             return (
-                <p className="text-sm text-red-600 dark:text-red-400">
-                    This poll was cancelled
+                <p className="text-[0.9375rem] text-[color:var(--status-cancelled-fg)]">
                     {poll.cancellation_reason === 'no_votes'
-                        ? ' because no one voted.'
-                        : ' by an admin.'}
+                        ? 'Cancelled because no one voted.'
+                        : 'Cancelled by an admin.'}
                 </p>
             )
     }
 }
 
 function formatDate(dateStr: string): string {
-    // scheduled_date is `YYYY-MM-DD`; anchor to midnight UTC to avoid
-    // off-by-one on tz rendering.
     return new Date(dateStr + 'T00:00:00Z').toLocaleDateString(undefined, {
         weekday: 'long',
         year: 'numeric',
@@ -519,24 +595,6 @@ function formatDateTime(isoString: string): string {
     })
 }
 
-const STATUS_STYLES: Record<PollStatus, string> = {
-    scheduled:
-        'bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-200',
-    open: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200',
-    pending_close:
-        'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200',
-    closed:
-        'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200',
-    cancelled:
-        'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200',
-}
-
-function StatusBadge({ status }: { status: PollStatus }) {
-    return (
-        <span
-            className={`inline-block text-xs rounded-full px-2 py-0.5 ${STATUS_STYLES[status]}`}
-        >
-            {status.replace('_', ' ')}
-        </span>
-    )
+function formatNum(n: number): string {
+    return n.toFixed(2).replace(/\.?0+$/, '')
 }
