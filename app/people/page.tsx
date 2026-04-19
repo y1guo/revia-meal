@@ -4,6 +4,7 @@ import { AppShell } from '@/components/shell/AppShell'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { DateRangeField } from '@/components/ui/DateRangeField'
 import { EmptyState } from '@/components/ui/EmptyState'
 import {
     FlavorBar,
@@ -153,40 +154,7 @@ export default async function PeoplePage({
 
             <Card className="mb-6">
                 <form className="flex flex-wrap items-end gap-3">
-                    <label className="flex flex-col gap-1">
-                        <span className="text-[0.75rem] font-medium text-[color:var(--text-secondary)]">
-                            From
-                        </span>
-                        <input
-                            type="date"
-                            name="from"
-                            defaultValue={from}
-                            className={cn(
-                                'h-9 px-2.5 rounded-[var(--radius-md)]',
-                                'bg-[color:var(--surface-raised)]',
-                                'border border-[color:var(--border-subtle)]',
-                                'text-[0.875rem] text-[color:var(--text-primary)]',
-                                'focus:border-[color:var(--accent-brand)]',
-                            )}
-                        />
-                    </label>
-                    <label className="flex flex-col gap-1">
-                        <span className="text-[0.75rem] font-medium text-[color:var(--text-secondary)]">
-                            To
-                        </span>
-                        <input
-                            type="date"
-                            name="to"
-                            defaultValue={to}
-                            className={cn(
-                                'h-9 px-2.5 rounded-[var(--radius-md)]',
-                                'bg-[color:var(--surface-raised)]',
-                                'border border-[color:var(--border-subtle)]',
-                                'text-[0.875rem] text-[color:var(--text-primary)]',
-                                'focus:border-[color:var(--accent-brand)]',
-                            )}
-                        />
-                    </label>
+                    <DateRangeField from={from} to={to} label="Date range" />
                     <div className="ml-auto flex items-center gap-2">
                         <Link
                             href="/people"

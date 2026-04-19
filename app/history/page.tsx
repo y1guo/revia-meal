@@ -4,6 +4,7 @@ import { AppShell } from '@/components/shell/AppShell'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { DateRangeField } from '@/components/ui/DateRangeField'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { requireUser } from '@/lib/auth'
@@ -135,10 +136,10 @@ export default async function HistoryPage({
             />
 
             <Card className="mb-6">
-                {/* TODO(design): replace native date inputs with DateRangeField
-                    primitive once we add react-day-picker (docs/design/pages.md §/history).
-                    Native <select> here is the expedient MVP — Radix Select reserves
-                    empty-string and complicates "All" semantics for GET filters. */}
+                {/* Native <select> is still used for "All"-style filters. Radix
+                    Select reserves the empty-string value, which collides with
+                    a GET form's "unset" semantics. Date range uses our
+                    DateRangeField (Radix Popover + react-day-picker). */}
                 <form className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
                     <FilterField label="Template">
                         <NativeSelect name="template" defaultValue={templateFilter}>
@@ -150,20 +151,14 @@ export default async function HistoryPage({
                             ))}
                         </NativeSelect>
                     </FilterField>
-                    <FilterField label="From">
-                        <NativeInput
-                            type="date"
-                            name="from"
-                            defaultValue={from}
+                    <div className="md:col-span-2">
+                        <DateRangeField
+                            from={from}
+                            to={to}
+                            label="Date range"
+                            className="w-full"
                         />
-                    </FilterField>
-                    <FilterField label="To">
-                        <NativeInput
-                            type="date"
-                            name="to"
-                            defaultValue={to}
-                        />
-                    </FilterField>
+                    </div>
                     <FilterField label="Status">
                         <NativeSelect name="status" defaultValue={statusFilter}>
                             <option value="">All</option>
@@ -305,25 +300,6 @@ function NativeSelect({
 }: React.SelectHTMLAttributes<HTMLSelectElement>) {
     return (
         <select
-            {...rest}
-            className={cn(
-                'h-9 px-2.5 rounded-[var(--radius-md)]',
-                'bg-[color:var(--surface-raised)]',
-                'border border-[color:var(--border-subtle)]',
-                'text-[0.875rem] text-[color:var(--text-primary)]',
-                'focus:border-[color:var(--accent-brand)]',
-                className,
-            )}
-        />
-    )
-}
-
-function NativeInput({
-    className,
-    ...rest
-}: React.InputHTMLAttributes<HTMLInputElement>) {
-    return (
-        <input
             {...rest}
             className={cn(
                 'h-9 px-2.5 rounded-[var(--radius-md)]',

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { DateRangeField } from '@/components/ui/DateRangeField'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { cn } from '@/lib/cn'
@@ -150,20 +151,14 @@ export default async function AdminPollsPage({
                             ))}
                         </AdminNativeSelect>
                     </FilterField>
-                    <FilterField label="From">
-                        <AdminNativeInput
-                            type="date"
-                            name="from"
-                            defaultValue={from}
+                    <div className="md:col-span-2">
+                        <DateRangeField
+                            from={from}
+                            to={to}
+                            label="Date range"
+                            className="w-full"
                         />
-                    </FilterField>
-                    <FilterField label="To">
-                        <AdminNativeInput
-                            type="date"
-                            name="to"
-                            defaultValue={to}
-                        />
-                    </FilterField>
+                    </div>
                     <FilterField label="Status">
                         <AdminNativeSelect
                             name="status"
@@ -322,25 +317,6 @@ function AdminNativeSelect({
 }: React.SelectHTMLAttributes<HTMLSelectElement>) {
     return (
         <select
-            {...rest}
-            className={cn(
-                'h-9 px-2.5 rounded-[var(--radius-md)]',
-                'bg-[color:var(--surface-raised)]',
-                'border border-[color:var(--border-subtle)]',
-                'text-[0.875rem] text-[color:var(--text-primary)]',
-                'focus:border-[color:var(--accent-brand)]',
-                className,
-            )}
-        />
-    )
-}
-
-function AdminNativeInput({
-    className,
-    ...rest
-}: React.InputHTMLAttributes<HTMLInputElement>) {
-    return (
-        <input
             {...rest}
             className={cn(
                 'h-9 px-2.5 rounded-[var(--radius-md)]',
