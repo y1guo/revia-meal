@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import {
     CalendarClock,
@@ -10,6 +11,8 @@ import { PageHeader } from '@/components/shell/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { cn } from '@/lib/cn'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+export const metadata: Metadata = { title: 'Admin' }
 
 type Stat = {
     label: string

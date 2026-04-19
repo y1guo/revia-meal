@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { PageHeader } from '@/components/shell/PageHeader'
@@ -27,6 +28,22 @@ const DAYS = [
     { num: 6, label: 'Sat' },
     { num: 7, label: 'Sun' },
 ]
+
+export async function generateMetadata({
+    params,
+}: {
+    params: Params
+}): Promise<Metadata> {
+    const { id } = await params
+    const admin = createAdminClient()
+    const { data } = await admin
+        .from('poll_templates')
+        .select('name')
+        .eq('id', id)
+        .maybeSingle()
+    const name = data?.name ?? 'Template'
+    return { title: `${name} · Templates · Admin` }
+}
 
 export default async function TemplateEditPage({
     params,

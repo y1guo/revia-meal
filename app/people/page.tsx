@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { signOut } from '@/app/actions'
 import { AppShell } from '@/components/shell/AppShell'
@@ -13,6 +14,8 @@ import {
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+
+export const metadata: Metadata = { title: 'People' }
 
 type SearchParams = Promise<{ from?: string; to?: string }>
 

@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -5,6 +6,8 @@ import { Chip } from '@/components/ui/Chip'
 import { TextInput } from '@/components/ui/TextInput'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { addRestaurant, updateRestaurant } from './actions'
+
+export const metadata: Metadata = { title: 'Restaurants · Admin' }
 
 export default async function RestaurantsPage() {
     const admin = createAdminClient()

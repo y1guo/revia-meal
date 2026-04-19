@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -8,6 +9,8 @@ import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { addUser, updateUser } from './actions'
 import DeleteUserButton from './delete-user-button'
+
+export const metadata: Metadata = { title: 'Users · Admin' }
 
 export default async function UsersPage() {
     const currentAdmin = await requireAdmin()

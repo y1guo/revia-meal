@@ -24,8 +24,11 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-    title: 'revia · meal',
-    description: "HeyRevia's daily lunch poll.",
+    title: {
+        default: 'HeyRevia Meal',
+        template: '%s · HeyRevia Meal',
+    },
+    description: "HeyRevia's office meal polls.",
 }
 
 export default function RootLayout({

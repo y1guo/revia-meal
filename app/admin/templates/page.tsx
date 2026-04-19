@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -6,6 +7,8 @@ import { Chip } from '@/components/ui/Chip'
 import { TextInput } from '@/components/ui/TextInput'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createTemplate } from './actions'
+
+export const metadata: Metadata = { title: 'Templates · Admin' }
 
 type Schedule = {
     days_of_week?: number[]

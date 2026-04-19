@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { signOut } from '@/app/actions'
 import { AppShell } from '@/components/shell/AppShell'
@@ -11,6 +12,8 @@ import { requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPollStatus } from '@/lib/polls'
 import { cn } from '@/lib/cn'
+
+export const metadata: Metadata = { title: 'History' }
 
 type SearchParams = Promise<{
     template?: string

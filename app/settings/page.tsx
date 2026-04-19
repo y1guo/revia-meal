@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { signOut } from '@/app/actions'
 import { AppShell } from '@/components/shell/AppShell'
 import { PageHeader } from '@/components/shell/PageHeader'
@@ -15,6 +16,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import CreateKeyForm from './create-key-form'
 import RevokeButton from './revoke-button'
 import { updateDisplayName } from './actions'
+
+export const metadata: Metadata = { title: 'Settings' }
 
 type ApiKeyRow = {
     id: string

@@ -1,8 +1,11 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import LoginForm, { type DevUser } from './login-form'
+
+export const metadata: Metadata = { title: 'Sign in' }
 
 function safeNext(raw: string | undefined): string {
     if (!raw) return '/'

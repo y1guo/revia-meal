@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Button } from '@/components/ui/Button'
@@ -9,6 +10,8 @@ import { cn } from '@/lib/cn'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPollStatus } from '@/lib/polls'
 import CancelButton from './cancel-button'
+
+export const metadata: Metadata = { title: 'Polls · Admin' }
 
 type SearchParams = Promise<{
     template?: string

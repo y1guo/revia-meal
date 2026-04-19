@@ -1,9 +1,12 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { signOut } from '@/app/actions'
 import { AppShell } from '@/components/shell/AppShell'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
+
+export const metadata: Metadata = { title: 'Guide' }
 
 type TocItem = { id: string; label: string; children?: TocItem[] }
 

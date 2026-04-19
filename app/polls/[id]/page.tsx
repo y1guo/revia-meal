@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Award, Loader2 } from 'lucide-react'
@@ -57,6 +58,35 @@ type VoterPick = {
 
 const POLL_SELECT =
     'id, template_id, scheduled_date, opens_at, closes_at, finalized_at, cancelled_at, cancellation_reason, cancelled_by, winner_id'
+
+export async function generateMetadata({
+    params,
+}: {
+    params: Params
+}): Promise<Metadata> {
+    const { id } = await params
+    const admin = createAdminClient()
+    const { data: poll } = await admin
+        .from('polls')
+        .select('scheduled_date, template_id')
+        .eq('id', id)
+        .maybeSingle()
+    if (!poll) return { title: 'Poll' }
+    const { data: template } = await admin
+        .from('poll_templates')
+        .select('name')
+        .eq('id', poll.template_id)
+        .maybeSingle()
+    const name = template?.name ?? 'Poll'
+    const date = new Date(
+        (poll.scheduled_date as string) + 'T00:00:00Z',
+    ).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        timeZone: 'UTC',
+    })
+    return { title: `${name} · ${date}` }
+}
 
 export default async function PollPage({ params }: { params: Params }) {
     const user = await requireUser()

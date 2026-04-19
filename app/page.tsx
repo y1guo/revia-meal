@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { AppShell } from '@/components/shell/AppShell'
@@ -8,6 +9,8 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { getCurrentUser } from '@/lib/auth'
 import { getTodaysDashboard, type PollStatus } from '@/lib/polls'
 import { signOut } from './actions'
+
+export const metadata: Metadata = { title: 'Today' }
 
 type PollEntry = Awaited<ReturnType<typeof getTodaysDashboard>>[number]
 
