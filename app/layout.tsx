@@ -39,6 +39,7 @@ export default function RootLayout({
     return (
         <html
             lang="en"
+            suppressHydrationWarning
             className={`${fraunces.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
         >
             <head>

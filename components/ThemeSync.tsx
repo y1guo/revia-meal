@@ -10,6 +10,10 @@ import { applyTheme, readThemeCookie } from '@/lib/theme'
  */
 export function ThemeSync() {
     useEffect(() => {
+        // Re-apply on mount in case the pre-hydration script was skipped
+        // or the cookie changed in another tab since last render.
+        applyTheme(readThemeCookie())
+
         const media = window.matchMedia('(prefers-color-scheme: dark)')
         const handler = () => {
             if (readThemeCookie() === 'system') {
