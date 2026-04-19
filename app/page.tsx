@@ -21,6 +21,9 @@ export default async function Home() {
                     </p>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
+                    <Link href="/people" className="underline">
+                        People
+                    </Link>
                     {user.role === 'admin' && (
                         <Link href="/admin" className="underline">
                             Admin
