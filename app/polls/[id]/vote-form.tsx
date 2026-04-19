@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useActionState, useMemo, useState } from 'react'
 import { submitVote, type SubmitVoteResult } from './actions'
 
@@ -48,6 +49,18 @@ export default function VoteForm({
     return (
         <form action={action} className="space-y-3">
             <input type="hidden" name="poll_id" value={pollId} />
+
+            <p className="text-xs text-neutral-500">
+                Pick one or more restaurants. Your credit splits evenly across
+                them. Banked credits from past polls boost restaurants you pick
+                today.{' '}
+                <Link
+                    href="/docs#rolling-credits"
+                    className="underline"
+                >
+                    How this works →
+                </Link>
+            </p>
 
             <ul className="border rounded-md divide-y">
                 {ballot.map((r) => (

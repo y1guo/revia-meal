@@ -27,6 +27,9 @@ export default async function Home() {
                     <Link href="/history" className="underline">
                         History
                     </Link>
+                    <Link href="/docs" className="underline">
+                        Docs
+                    </Link>
                     <Link href="/settings" className="underline">
                         Settings
                     </Link>

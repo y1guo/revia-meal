@@ -357,8 +357,15 @@ function ClosedBreakdown({
     })
 
     return (
-        <ul className="border rounded-md divide-y">
-            {ordered.map((r) => {
+        <div className="space-y-2">
+            <p className="text-xs text-neutral-500">
+                Total tally = today&apos;s votes + banked boost from past polls.{' '}
+                <Link href="/docs#rolling-credits" className="underline">
+                    How this works →
+                </Link>
+            </p>
+            <ul className="border rounded-md divide-y">
+                {ordered.map((r) => {
                 const t = tallyMap.get(r.id)
                 const rVoters = votersByRestaurant.get(r.id) ?? []
                 const isWinner = r.id === winnerId
@@ -437,7 +444,8 @@ function ClosedBreakdown({
                     </li>
                 )
             })}
-        </ul>
+            </ul>
+        </div>
     )
 }
 
