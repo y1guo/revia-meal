@@ -1,7 +1,17 @@
-import Link from 'next/link'
+import { signOut } from '@/app/actions'
+import { AppShell } from '@/components/shell/AppShell'
+import { PageHeader } from '@/components/shell/PageHeader'
+import { Avatar } from '@/components/ui/Avatar'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { Chip } from '@/components/ui/Chip'
+import { FormField } from '@/components/ui/FormField'
+import { StatusBadge } from '@/components/ui/StatusBadge'
+import { TextInput } from '@/components/ui/TextInput'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { signOut } from '../actions'
 import CreateKeyForm from './create-key-form'
 import RevokeButton from './revoke-button'
 import { updateDisplayName } from './actions'
@@ -23,127 +33,173 @@ export default async function SettingsPage() {
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
     const keys = (data ?? []) as ApiKeyRow[]
+    const activeCount = keys.filter((k) => !k.revoked_at).length
 
     return (
-        <main className="p-8 space-y-8 max-w-3xl">
-            <p className="text-sm">
-                <Link href="/" className="underline">
-                    ← Today&apos;s polls
-                </Link>
-            </p>
-            <header className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                    <h1 className="text-2xl font-semibold">Settings</h1>
-                    <p className="text-sm text-neutral-500">
-                        Signed in as {user.email}
-                        {user.role === 'admin' ? ' (admin)' : ''}.
-                    </p>
-                </div>
-                <form action={signOut}>
-                    <button
-                        type="submit"
-                        className="text-sm underline whitespace-nowrap"
-                    >
-                        Sign out
-                    </button>
-                </form>
-            </header>
+        <AppShell
+            user={user}
+            signOutAction={signOut}
+            maxWidthClassName="max-w-[720px]"
+        >
+            <PageHeader title="Settings" />
 
-            <section className="space-y-3">
-                <h2 className="text-lg font-medium">Display name</h2>
-                <p className="text-sm text-neutral-500">
-                    How your name appears on polls, voter lists, and the
-                    People page. Leave blank to fall back to your email.
-                </p>
-                <form
-                    action={updateDisplayName}
-                    className="flex gap-2 max-w-xl"
-                >
-                    <input
-                        name="display_name"
-                        maxLength={64}
-                        defaultValue={user.display_name ?? ''}
-                        placeholder={user.email}
-                        className="flex-1 border rounded-md px-3 py-2 bg-transparent"
+            <div className="space-y-6">
+                <Card className="space-y-4">
+                    <div className="flex items-start gap-4">
+                        <Avatar
+                            name={user.display_name}
+                            email={user.email}
+                            size={40}
+                        />
+                        <div className="min-w-0 flex-1 space-y-1">
+                            <div className="font-medium text-[color:var(--text-primary)] truncate">
+                                {user.display_name ?? user.email}
+                            </div>
+                            {user.display_name && (
+                                <div className="text-[0.8125rem] text-[color:var(--text-secondary)] truncate">
+                                    {user.email}
+                                </div>
+                            )}
+                            {user.role === 'admin' && (
+                                <div>
+                                    <Chip variant="accent">Admin</Chip>
+                                </div>
+                            )}
+                        </div>
+                        <form action={signOut}>
+                            <Button type="submit" variant="ghost" size="sm">
+                                Sign out
+                            </Button>
+                        </form>
+                    </div>
+                </Card>
+
+                <Card>
+                    <SectionHeader title="Display name" />
+                    <form
+                        action={updateDisplayName}
+                        className="space-y-2 max-w-[420px]"
+                    >
+                        <FormField
+                            id="display-name"
+                            label="Your name"
+                            help="How your name appears on polls, voter lists, and the People page. Leave blank to fall back to your email."
+                        >
+                            <div className="flex gap-2">
+                                <TextInput
+                                    name="display_name"
+                                    maxLength={64}
+                                    defaultValue={user.display_name ?? ''}
+                                    placeholder={user.email}
+                                    className="flex-1"
+                                />
+                                <Button type="submit" variant="primary">
+                                    Save
+                                </Button>
+                            </div>
+                        </FormField>
+                    </form>
+                </Card>
+
+                <Card className="md:hidden">
+                    <SectionHeader
+                        title="Appearance"
+                        subtitle="Follows your system unless you pick manually."
                     />
-                    <button
-                        type="submit"
-                        className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-neutral-100 dark:hover:bg-neutral-900"
-                    >
-                        Save
-                    </button>
-                </form>
-            </section>
+                    <ThemeToggle size="md" />
+                </Card>
 
-            <section className="space-y-3">
-                <h2 className="text-lg font-medium">Create an API key</h2>
-                <p className="text-sm text-neutral-500">
-                    API keys inherit your current role — if you&apos;re an admin,
-                    keys created here can call admin endpoints.
+                <Card>
+                    <SectionHeader
+                        title="API keys"
+                        subtitle="Use keys to call the revia-meal API as yourself. Treat them like passwords."
+                    />
+                    <CreateKeyForm />
+                </Card>
+
+                <Card>
+                    <SectionHeader
+                        title={`Your keys (${keys.length})`}
+                        subtitle={
+                            keys.length === 0
+                                ? undefined
+                                : `${activeCount} active, ${keys.length - activeCount} revoked`
+                        }
+                    />
+                    {keys.length === 0 ? (
+                        <p className="text-[0.875rem] text-[color:var(--text-secondary)]">
+                            No API keys yet. Create one above if you need to
+                            automate anything.
+                        </p>
+                    ) : (
+                        <ul className="space-y-2">
+                            {keys.map((k) => (
+                                <KeyRow key={k.id} row={k} />
+                            ))}
+                        </ul>
+                    )}
+                </Card>
+            </div>
+        </AppShell>
+    )
+}
+
+function SectionHeader({
+    title,
+    subtitle,
+}: {
+    title: string
+    subtitle?: string
+}) {
+    return (
+        <div className="mb-4 space-y-1">
+            <h2 className="font-display font-medium text-[1rem] text-[color:var(--text-primary)]">
+                {title}
+            </h2>
+            {subtitle && (
+                <p className="text-[0.8125rem] text-[color:var(--text-secondary)]">
+                    {subtitle}
                 </p>
-                <CreateKeyForm />
-            </section>
+            )}
+        </div>
+    )
+}
 
-            <section className="space-y-3">
-                <h2 className="text-lg font-medium">
-                    Your keys ({keys.length})
-                </h2>
-                {keys.length === 0 ? (
-                    <p className="text-sm text-neutral-500">
-                        No API keys yet.
-                    </p>
-                ) : (
-                    <ul className="border rounded-md divide-y">
-                        {keys.map((k) => {
-                            const revoked = !!k.revoked_at
-                            return (
-                                <li
-                                    key={k.id}
-                                    className={`p-4 flex items-center gap-4 ${
-                                        revoked ? 'opacity-60' : ''
-                                    }`}
-                                >
-                                    <div className="flex-1 min-w-0 space-y-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-medium">
-                                                {k.name}
-                                            </span>
-                                            {revoked && (
-                                                <span className="text-xs rounded-full px-2 py-0.5 bg-neutral-200 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-400">
-                                                    revoked
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="text-xs text-neutral-500">
-                                            Created {formatDateTime(k.created_at)}
-                                            {' · '}
-                                            {k.last_used_at
-                                                ? `Last used ${formatDateTime(k.last_used_at)}`
-                                                : 'Never used'}
-                                            {revoked && (
-                                                <>
-                                                    {' · '}
-                                                    Revoked{' '}
-                                                    {formatDateTime(
-                                                        k.revoked_at!,
-                                                    )}
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {!revoked && (
-                                        <RevokeButton
-                                            keyId={k.id}
-                                            name={k.name}
-                                        />
-                                    )}
-                                </li>
-                            )
-                        })}
-                    </ul>
-                )}
-            </section>
-        </main>
+function KeyRow({ row }: { row: ApiKeyRow }) {
+    const revoked = !!row.revoked_at
+    return (
+        <li
+            className={cn(
+                'flex items-start gap-3',
+                'rounded-[var(--radius-md)]',
+                'bg-[color:var(--surface-sunken)]',
+                'px-3 py-3',
+                revoked && 'opacity-70',
+            )}
+        >
+            <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-[color:var(--text-primary)]">
+                        {row.name}
+                    </span>
+                    {revoked && <StatusBadge status="revoked" />}
+                </div>
+                <div className="text-[0.75rem] text-[color:var(--text-secondary)]">
+                    Created {formatDateTime(row.created_at)}
+                    {' · '}
+                    {row.last_used_at
+                        ? `Last used ${formatDateTime(row.last_used_at)}`
+                        : 'Never used'}
+                    {revoked && (
+                        <>
+                            {' · '}
+                            Revoked {formatDateTime(row.revoked_at!)}
+                        </>
+                    )}
+                </div>
+            </div>
+            {!revoked && <RevokeButton keyId={row.id} name={row.name} />}
+        </li>
     )
 }
 

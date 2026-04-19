@@ -1,5 +1,8 @@
 'use client'
 
+import { useState } from 'react'
+import { Button } from '@/components/ui/Button'
+import { DestructiveConfirmModal } from '@/components/ui/DestructiveConfirmModal'
 import { revokeApiKey } from './actions'
 
 export default function RevokeButton({
@@ -9,24 +12,38 @@ export default function RevokeButton({
     keyId: string
     name: string
 }) {
+    const [open, setOpen] = useState(false)
+
+    const handleConfirm = async () => {
+        const fd = new FormData()
+        fd.append('key_id', keyId)
+        await revokeApiKey(fd)
+    }
+
     return (
-        <form action={revokeApiKey}>
-            <input type="hidden" name="key_id" value={keyId} />
-            <button
-                type="submit"
-                onClick={(e) => {
-                    if (
-                        !window.confirm(
-                            `Revoke "${name}"?\n\nAny future request using this key will fail. This can't be undone — you'd need to create a new key.`,
-                        )
-                    ) {
-                        e.preventDefault()
-                    }
-                }}
-                className="text-xs rounded-md border border-red-300 text-red-700 dark:border-red-800 dark:text-red-400 px-2 py-1 hover:bg-red-50 dark:hover:bg-red-950"
+        <>
+            <Button
+                variant="ghost-destructive"
+                size="sm"
+                onClick={() => setOpen(true)}
             >
                 Revoke
-            </button>
-        </form>
+            </Button>
+            <DestructiveConfirmModal
+                open={open}
+                onOpenChange={setOpen}
+                title="Revoke this key?"
+                target={name}
+                warning="This can't be undone."
+                destructiveLabel="Revoke key"
+                onConfirm={handleConfirm}
+            >
+                <p>
+                    Any calls using this key will start failing immediately.
+                    You can&apos;t restore a revoked key — you&apos;ll have to
+                    create a new one.
+                </p>
+            </DestructiveConfirmModal>
+        </>
     )
 }
