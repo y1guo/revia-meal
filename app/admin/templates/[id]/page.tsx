@@ -1,4 +1,11 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { PageHeader } from '@/components/shell/PageHeader'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { Chip } from '@/components/ui/Chip'
+import { TextInput } from '@/components/ui/TextInput'
+import { cn } from '@/lib/cn'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { updateTemplate, updateAssignments } from './actions'
 
@@ -21,7 +28,11 @@ const DAYS = [
     { num: 7, label: 'Sun' },
 ]
 
-export default async function TemplateEditPage({ params }: { params: Params }) {
+export default async function TemplateEditPage({
+    params,
+}: {
+    params: Params
+}) {
     const { id } = await params
     const admin = createAdminClient()
 
@@ -53,146 +64,230 @@ export default async function TemplateEditPage({ params }: { params: Params }) {
     )
 
     return (
-        <main className="p-8 space-y-8 max-w-4xl">
-            <header>
-                <h1 className="text-2xl font-semibold">{template.name}</h1>
-                <p className="text-sm text-neutral-500">Template settings and restaurant assignments.</p>
-            </header>
+        <>
+            <Link
+                href="/admin/templates"
+                className="inline-flex items-center text-[0.8125rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] mb-3"
+            >
+                ← All templates
+            </Link>
+            <PageHeader
+                title={template.name}
+                subtitle="Template settings and restaurant assignments."
+            />
 
-            <form action={updateTemplate} className="space-y-4 border rounded-md p-4">
-                <input type="hidden" name="id" value={template.id} />
-                <div className="grid gap-3">
-                    <label className="grid gap-1">
-                        <span className="text-sm font-medium">Name</span>
+            <div className="space-y-6">
+                <Card>
+                    <form action={updateTemplate} className="space-y-4">
                         <input
-                            name="name"
-                            defaultValue={template.name}
-                            required
-                            className="border rounded-md px-3 py-2 bg-transparent"
+                            type="hidden"
+                            name="id"
+                            value={template.id}
                         />
-                    </label>
-                    <label className="grid gap-1">
-                        <span className="text-sm font-medium">Description</span>
-                        <input
-                            name="description"
-                            defaultValue={template.description ?? ''}
-                            className="border rounded-md px-3 py-2 bg-transparent"
-                        />
-                    </label>
-
-                    <fieldset className="border rounded-md p-3 space-y-3">
-                        <legend className="text-sm font-medium px-1">Schedule</legend>
-
-                        <div className="flex flex-wrap gap-3">
-                            {DAYS.map((d) => (
-                                <label key={d.num} className="flex items-center gap-1 text-sm">
-                                    <input
-                                        type="checkbox"
-                                        name="days_of_week"
-                                        value={d.num}
-                                        defaultChecked={schedule.days_of_week?.includes(d.num) ?? false}
-                                    />
-                                    {d.label}
-                                </label>
-                            ))}
-                        </div>
-
-                        <div className="flex flex-wrap gap-3 items-end">
-                            <label className="grid gap-1">
-                                <span className="text-xs text-neutral-500">Opens (local)</span>
-                                <input
-                                    name="opens_at_local"
-                                    type="time"
-                                    defaultValue={schedule.opens_at_local ?? '10:00'}
+                        <div className="space-y-3">
+                            <label className="flex flex-col gap-1.5">
+                                <span className="text-[0.875rem] font-medium text-[color:var(--text-primary)]">
+                                    Name
+                                </span>
+                                <TextInput
+                                    name="name"
+                                    defaultValue={template.name}
                                     required
-                                    className="border rounded-md px-2 py-1 bg-transparent"
                                 />
                             </label>
-                            <label className="grid gap-1">
-                                <span className="text-xs text-neutral-500">Closes (local)</span>
-                                <input
-                                    name="closes_at_local"
-                                    type="time"
-                                    defaultValue={schedule.closes_at_local ?? '11:30'}
-                                    required
-                                    className="border rounded-md px-2 py-1 bg-transparent"
-                                />
-                            </label>
-                            <label className="grid gap-1">
-                                <span className="text-xs text-neutral-500">Timezone (IANA)</span>
-                                <input
-                                    name="timezone"
-                                    defaultValue={schedule.timezone ?? 'America/Los_Angeles'}
-                                    required
-                                    className="border rounded-md px-2 py-1 bg-transparent min-w-[220px]"
+                            <label className="flex flex-col gap-1.5">
+                                <span className="text-[0.875rem] font-medium text-[color:var(--text-primary)]">
+                                    Description
+                                </span>
+                                <TextInput
+                                    name="description"
+                                    defaultValue={template.description ?? ''}
                                 />
                             </label>
                         </div>
-                    </fieldset>
 
-                    <label className="flex items-center gap-2 text-sm">
-                        <input type="checkbox" name="is_active" defaultChecked={template.is_active} />
-                        Template is active (will instantiate polls on schedule)
-                    </label>
-                </div>
-                <button
-                    type="submit"
-                    className="rounded-md bg-black text-white px-4 py-2 text-sm font-medium hover:bg-neutral-800"
-                >
-                    Save template
-                </button>
-            </form>
+                        <fieldset className="rounded-[var(--radius-md)] bg-[color:var(--surface-sunken)] p-4 space-y-3">
+                            <legend className="text-[0.875rem] font-medium text-[color:var(--text-primary)] px-1">
+                                Schedule
+                            </legend>
 
-            <form action={updateAssignments} className="space-y-4 border rounded-md p-4">
-                <input type="hidden" name="id" value={template.id} />
-                <h2 className="text-lg font-medium">Restaurants</h2>
-                <p className="text-xs text-neutral-500">
-                    Checked restaurants are part of this template&apos;s ballot. Unchecking a previously-checked
-                    restaurant soft-deactivates the assignment — users keep their banked credits for it
-                    in this template, and re-checking restores the option to future ballots.
-                </p>
-                {restaurants.length === 0 ? (
-                    <p className="text-sm text-neutral-500">
-                        No restaurants in the catalog yet — add some under Restaurants first.
-                    </p>
-                ) : (
-                    <div className="divide-y border rounded-md">
-                        {restaurants.map((r) => {
-                            const current = assignmentMap.get(r.id)
-                            const isCheckedByDefault = !!(current && current.active)
-                            const dimmed = !r.is_active && !isCheckedByDefault
-                            return (
-                                <label
-                                    key={r.id}
-                                    className={`p-3 flex items-center gap-3 text-sm ${
-                                        dimmed ? 'opacity-50' : ''
-                                    }`}
-                                >
-                                    <input
-                                        type="checkbox"
-                                        name="restaurant_ids"
-                                        value={r.id}
-                                        defaultChecked={isCheckedByDefault}
-                                        disabled={dimmed}
+                            <div>
+                                <div className="text-[0.75rem] font-medium text-[color:var(--text-secondary)] mb-2">
+                                    Days of week
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {DAYS.map((d) => {
+                                        const checked =
+                                            schedule.days_of_week?.includes(
+                                                d.num,
+                                            ) ?? false
+                                        return (
+                                            <label
+                                                key={d.num}
+                                                className={cn(
+                                                    'relative inline-flex items-center justify-center',
+                                                    'h-8 px-3 rounded-full cursor-pointer',
+                                                    'text-[0.8125rem] font-medium',
+                                                    'border transition-colors duration-150',
+                                                    'has-[:checked]:bg-[color:var(--accent-brand)] has-[:checked]:border-[color:var(--accent-brand)] has-[:checked]:text-[color:var(--text-on-accent)]',
+                                                    'border-[color:var(--border-subtle)] bg-[color:var(--surface-raised)] text-[color:var(--text-secondary)]',
+                                                )}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    name="days_of_week"
+                                                    value={d.num}
+                                                    defaultChecked={checked}
+                                                    className="sr-only"
+                                                />
+                                                {d.label}
+                                            </label>
+                                        )
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-3">
+                                <label className="flex flex-col gap-1">
+                                    <span className="text-[0.75rem] font-medium text-[color:var(--text-secondary)]">
+                                        Opens (local)
+                                    </span>
+                                    <TextInput
+                                        name="opens_at_local"
+                                        type="time"
+                                        defaultValue={
+                                            schedule.opens_at_local ?? '10:00'
+                                        }
+                                        required
+                                        size="sm"
+                                        className="w-[140px]"
                                     />
-                                    <span className="flex-1">{r.name}</span>
-                                    {!r.is_active && (
-                                        <span className="text-xs text-neutral-500">
-                                            (catalog inactive)
-                                        </span>
-                                    )}
                                 </label>
-                            )
-                        })}
-                    </div>
-                )}
-                <button
-                    type="submit"
-                    className="rounded-md bg-black text-white px-4 py-2 text-sm font-medium hover:bg-neutral-800"
-                >
-                    Save assignments
-                </button>
-            </form>
-        </main>
+                                <label className="flex flex-col gap-1">
+                                    <span className="text-[0.75rem] font-medium text-[color:var(--text-secondary)]">
+                                        Closes (local)
+                                    </span>
+                                    <TextInput
+                                        name="closes_at_local"
+                                        type="time"
+                                        defaultValue={
+                                            schedule.closes_at_local ?? '11:30'
+                                        }
+                                        required
+                                        size="sm"
+                                        className="w-[140px]"
+                                    />
+                                </label>
+                                <label className="flex flex-col gap-1 flex-1 min-w-[220px]">
+                                    <span className="text-[0.75rem] font-medium text-[color:var(--text-secondary)]">
+                                        Timezone (IANA)
+                                    </span>
+                                    <TextInput
+                                        name="timezone"
+                                        defaultValue={
+                                            schedule.timezone ??
+                                            'America/Los_Angeles'
+                                        }
+                                        required
+                                        size="sm"
+                                    />
+                                </label>
+                            </div>
+                        </fieldset>
+
+                        <label className="flex items-center gap-2 text-[0.875rem]">
+                            <input
+                                type="checkbox"
+                                name="is_active"
+                                defaultChecked={template.is_active}
+                                className="h-4 w-4 accent-[color:var(--accent-brand)]"
+                            />
+                            Template is active (will instantiate polls on
+                            schedule)
+                        </label>
+
+                        <div>
+                            <Button type="submit" variant="primary">
+                                Save template
+                            </Button>
+                        </div>
+                    </form>
+                </Card>
+
+                <Card>
+                    <form action={updateAssignments} className="space-y-4">
+                        <input
+                            type="hidden"
+                            name="id"
+                            value={template.id}
+                        />
+                        <div>
+                            <h2 className="font-display font-medium text-[1rem] text-[color:var(--text-primary)]">
+                                Restaurants
+                            </h2>
+                            <p className="text-[0.8125rem] text-[color:var(--text-secondary)] mt-1">
+                                Checked restaurants are part of this
+                                template&apos;s ballot. Unchecking soft-
+                                deactivates the assignment — users keep their
+                                banked credits, re-checking restores the option
+                                on future ballots.
+                            </p>
+                        </div>
+                        {restaurants.length === 0 ? (
+                            <p className="text-[0.875rem] text-[color:var(--text-secondary)]">
+                                No restaurants in the catalog yet — add some
+                                under Restaurants first.
+                            </p>
+                        ) : (
+                            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                                {restaurants.map((r) => {
+                                    const current = assignmentMap.get(r.id)
+                                    const isCheckedByDefault = !!(
+                                        current && current.active
+                                    )
+                                    const dimmed =
+                                        !r.is_active && !isCheckedByDefault
+                                    return (
+                                        <label
+                                            key={r.id}
+                                            className={cn(
+                                                'flex items-center gap-2',
+                                                'px-3 py-2 rounded-[var(--radius-md)]',
+                                                'bg-[color:var(--surface-sunken)]',
+                                                'text-[0.875rem] cursor-pointer',
+                                                dimmed &&
+                                                    'opacity-50 cursor-not-allowed',
+                                            )}
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                name="restaurant_ids"
+                                                value={r.id}
+                                                defaultChecked={isCheckedByDefault}
+                                                disabled={dimmed}
+                                                className="h-4 w-4 accent-[color:var(--accent-brand)]"
+                                            />
+                                            <span className="flex-1 truncate">
+                                                {r.name}
+                                            </span>
+                                            {!r.is_active && (
+                                                <Chip variant="neutral">
+                                                    inactive
+                                                </Chip>
+                                            )}
+                                        </label>
+                                    )
+                                })}
+                            </div>
+                        )}
+                        <div>
+                            <Button type="submit" variant="primary">
+                                Save assignments
+                            </Button>
+                        </div>
+                    </form>
+                </Card>
+            </div>
+        </>
     )
 }
