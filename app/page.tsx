@@ -10,7 +10,11 @@ import { getCurrentUser } from '@/lib/auth'
 import { getTodaysDashboard, type PollStatus } from '@/lib/polls'
 import { signOut } from './actions'
 
-export const metadata: Metadata = { title: 'Today' }
+// Root-segment pages don't pick up the layout's title.template (that only
+// applies to child segments), so write the absolute title here.
+export const metadata: Metadata = {
+    title: { absolute: 'Today · HeyRevia Meal' },
+}
 
 type PollEntry = Awaited<ReturnType<typeof getTodaysDashboard>>[number]
 
