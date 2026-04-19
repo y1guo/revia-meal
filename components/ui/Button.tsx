@@ -17,6 +17,7 @@ type ButtonProps = {
     loading?: boolean
     leftIcon?: LucideIcon
     rightIcon?: LucideIcon
+    ref?: React.Ref<HTMLButtonElement>
 } & React.ButtonHTMLAttributes<HTMLButtonElement>
 
 const VARIANT: Record<ButtonVariant, string> = {
@@ -53,6 +54,7 @@ export function Button({
     children,
     disabled,
     type = 'button',
+    ref,
     ...rest
 }: ButtonProps) {
     const iconSize = ICON_SIZE[size]
@@ -60,6 +62,7 @@ export function Button({
     return (
         <button
             {...rest}
+            ref={ref}
             type={type}
             disabled={isDisabled}
             aria-busy={loading || undefined}
