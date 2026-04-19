@@ -7,26 +7,30 @@ type BrandProps = {
 }
 
 /**
- * "revia · meal" wordmark. The middle separator is a saffron-filled circle —
- * a placeholder plate glyph per [direction.md §13](../../docs/design/direction.md).
+ * HeyRevia icon + "meal" wordmark. The icon is the company mark; "meal" is
+ * Fraunces, identifying the app.
  */
 export function Brand({ href = '/', className }: BrandProps) {
     return (
         <Link
             href={href}
             className={cn(
-                'inline-flex items-center gap-1.5',
+                'inline-flex items-center gap-2',
                 'font-display font-semibold tracking-tight',
                 'text-[1.125rem] md:text-[1.25rem]',
                 'text-[color:var(--text-primary)]',
                 className,
             )}
-            aria-label="revia meal — home"
+            aria-label="HeyRevia meal — home"
         >
-            <span>revia</span>
-            <span
-                className="inline-block h-2 w-2 rounded-full bg-[color:var(--accent-brand)]"
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+                src="/brand/icon.png"
+                alt=""
                 aria-hidden="true"
+                width={28}
+                height={27}
+                className="h-7 w-auto"
             />
             <span>meal</span>
         </Link>

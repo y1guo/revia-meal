@@ -2,7 +2,6 @@
 
 import { AlertCircle } from 'lucide-react'
 import { useState } from 'react'
-import { Brand } from '@/components/shell/Brand'
 import { Button } from '@/components/ui/Button'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { cn } from '@/lib/cn'
@@ -53,27 +52,34 @@ export default function LoginForm({
                 <ThemeToggle size="sm" iconsOnly />
             </div>
             <div className="w-full max-w-[400px] space-y-6">
-                <div className="flex justify-center">
-                    <Brand href="#" />
-                </div>
-                {/* TODO(illustration): replace with a Storyset "Food & Drink"
-                    asset per docs/design/pages.md §/login. */}
-                <div
-                    className={cn(
-                        'mx-auto flex h-[160px] w-[160px] items-center justify-center',
-                        'rounded-full bg-[color:var(--surface-raised)]',
-                        'text-[3rem]',
-                    )}
-                    aria-hidden="true"
-                >
-                    🍱
+                <div className="flex flex-col items-center gap-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src="/brand/icon.png"
+                        alt=""
+                        aria-hidden="true"
+                        width={72}
+                        height={70}
+                        className="h-[72px] w-auto"
+                    />
+                    {/* Wordmark ships as white-on-transparent. In light mode we
+                        invert brightness to make it legible on cream. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                        src="/brand/wordmark.png"
+                        alt="HeyRevia"
+                        width={220}
+                        height={67}
+                        className="h-10 w-auto brightness-0 dark:brightness-100"
+                    />
                 </div>
                 <div className="space-y-2 text-center">
                     <h1 className="font-display font-medium text-[1.25rem] text-[color:var(--text-primary)]">
-                        Lunch, decided together.
+                        meal
                     </h1>
                     <p className="text-[0.875rem] text-[color:var(--text-secondary)]">
-                        Only emails on the office allowlist can sign in.
+                        Office lunch polls. Only emails on the allowlist can
+                        sign in.
                     </p>
                 </div>
                 {message && (
