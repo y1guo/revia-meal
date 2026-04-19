@@ -690,7 +690,7 @@ export default async function DocsPage() {
                     border-radius: var(--radius-sm);
                 }
                 .docs-prose a {
-                    color: var(--accent-brand);
+                    color: var(--link-fg);
                     text-decoration: underline;
                     text-underline-offset: 2px;
                 }

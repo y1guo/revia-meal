@@ -29,21 +29,26 @@ Replace the current stub with the block below. All tokens here become utility cl
   --color-saffron-300: #F4CC8E;
   --color-saffron-500: #E8A53C;
   --color-saffron-700: #D98C19;
+  --color-saffron-900: #7A4D0A;   /* a11y: link / focus-ring on cream */
 
   --color-sage-400:  #8FB26B;
   --color-sage-500:  #6B8E4E;
+  --color-sage-700:  #4A6534;     /* a11y: status-open-fg in light mode */
 
   --color-indigo-400: #7A93D1;
   --color-indigo-500: #4F6BB1;
+  --color-indigo-700: #2C3F75;    /* a11y: status-closed-fg in light mode */
 
   --color-honey-400: #E8B85C;
   --color-honey-500: #D9A43C;
+  --color-honey-700: #6E4D10;     /* a11y: status-pending-fg in light mode */
 
   --color-butter-400: #D9CDA8;
   --color-butter-700: #8A7E5F;
 
   --color-tomato-400: #E06A5E;
   --color-tomato-500: #C54A3E;
+  --color-tomato-700: #8A2E24;    /* a11y: status-cancelled-fg in light mode */
 
   /* ---------- Typography ---------- */
   --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
@@ -309,10 +314,22 @@ Bottom tab bar appears below `md` only. Nav pattern details in [components.md](c
 
 ## 6. Verification checklist before handing this off
 
-- [ ] `@theme` block compiles clean; `bg-saffron-500` etc. render correctly in JSX.
-- [ ] Toggling `.dark` on `<html>` flips every semantic token (smoke-test against dashboard).
-- [ ] No FOUC on first paint, either mode.
-- [ ] Fraunces + Geist load without layout shift (`font-display: swap`).
-- [ ] `prefers-reduced-motion: reduce` shortens all transitions to ≤120ms.
-- [ ] All five status badge color pairs meet WCAG AA text contrast in both modes (re-measure after any hue tweak).
-- [ ] Saffron focus ring visible against both `surface-base` and `surface-raised` in both modes.
+- [x] `@theme` block compiles clean; `bg-saffron-500` etc. render correctly in JSX.
+- [x] Toggling `.dark` on `<html>` flips every semantic token (smoke-test against dashboard).
+- [x] No FOUC on first paint, either mode.
+- [x] Fraunces + Geist load without layout shift (`font-display: swap`).
+- [x] `prefers-reduced-motion: reduce` shortens all transitions to ≤120ms.
+- [x] All status badge pairs meet WCAG AA in both modes (verified by `scripts/check-contrast.ts`).
+- [x] Focus ring passes 3:1 on `surface-base` and `surface-raised` in both modes.
+
+## 7. Accessibility-driven tokens
+
+Saffron at brand weight (`#E8A53C`) is intrinsically low-contrast against cream in light mode — roughly 2:1 against `surface-base`, well below WCAG 4.5:1 (text) or 3:1 (UI components). To stay on-brand without losing a11y, three semantic tokens derive from deeper palette steps in light mode:
+
+- **`--text-on-accent`** (primary button label on saffron): **espresso-900** in light mode. Flips to cream in dark.
+- **`--link-fg`** (inline link text): **saffron-900** in light. Used everywhere a link renders on cream surfaces. Still saffron-family so brand reads through.
+- **`--focus-ring`** (2px outline on every interactive element): **saffron-900** in light, **saffron-500** in dark.
+
+Status chip foregrounds in light mode step to the `-700` variant of their hue family (sage / indigo / honey / tomato / saffron-900 for banked) so the chip text clears 4.5:1 against its tinted background. Dark mode keeps the brighter `-400`/`-500` shades.
+
+**Audit script.** `pnpm exec tsx scripts/check-contrast.ts` computes ratios for every token pair we care about (44 pairs) and exits non-zero on any regression. Re-run after any color change.

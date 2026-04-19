@@ -16,6 +16,12 @@
     --color-saffron-300: #f4cc8e;
     --color-saffron-500: #e8a53c;
     --color-saffron-700: #d98c19;
+    --color-saffron-900: #7a4d0a;
+
+    --color-sage-700: #4a6534;
+    --color-indigo-700: #2c3f75;
+    --color-tomato-700: #8a2e24;
+    --color-honey-700: #6e4d10;
 
     --color-sage-400: #8fb26b;
     --color-sage-500: #6b8e4e;
@@ -66,8 +72,13 @@
 
     --text-primary: var(--color-espresso-900);
     --text-secondary: var(--color-espresso-600);
-    --text-tertiary: var(--color-espresso-400);
-    --text-on-accent: var(--color-cream-50);
+    --text-tertiary: #7a6e5c;
+    /* Dark text on saffron for AA contrast. */
+    --text-on-accent: var(--color-espresso-900);
+    /* Darker saffron for inline link text on cream. */
+    --link-fg: var(--color-saffron-900);
+    /* Deeper saffron for focus ring — saffron-700 alone doesn't hit 3:1 on cream. */
+    --focus-ring: var(--color-saffron-900);
 
     --accent-brand: var(--color-saffron-500);
     --accent-brand-hover: var(--color-saffron-700);
@@ -75,16 +86,16 @@
     --status-scheduled-bg: var(--color-butter-400);
     --status-scheduled-fg: var(--color-espresso-900);
     --status-open-bg: rgba(107, 142, 78, 0.15);
-    --status-open-fg: var(--color-sage-500);
+    --status-open-fg: var(--color-sage-700);
     --status-pending-bg: rgba(217, 164, 60, 0.18);
-    --status-pending-fg: #9c6f1a;
+    --status-pending-fg: var(--color-honey-700);
     --status-closed-bg: rgba(79, 107, 177, 0.14);
-    --status-closed-fg: var(--color-indigo-500);
+    --status-closed-fg: var(--color-indigo-700);
     --status-cancelled-bg: rgba(197, 74, 62, 0.12);
-    --status-cancelled-fg: var(--color-tomato-500);
+    --status-cancelled-fg: var(--color-tomato-700);
 
     --banked-bg: rgba(232, 165, 60, 0.12);
-    --banked-fg: var(--color-saffron-700);
+    --banked-fg: var(--color-saffron-900);
 
     --shadow-card-rest: var(--shadow-sm);
     --shadow-card-hover: var(--shadow-md);
@@ -103,6 +114,9 @@
     --text-secondary: var(--color-cream-300);
     --text-tertiary: var(--color-espresso-400);
     --text-on-accent: var(--color-espresso-950);
+    /* Saffron links/focus-ring pass AA on the dark espresso surface. */
+    --link-fg: var(--color-saffron-500);
+    --focus-ring: var(--color-saffron-500);
 
     --accent-brand: var(--color-saffron-500);
     --accent-brand-hover: #f4b955;
@@ -142,9 +156,9 @@ body {
     font-feature-settings: "ss01", "cv11";
 }
 
-/* Saffron focus ring */
+/* Focus ring — mode-aware saffron via --focus-ring. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
-    outline: 2px solid var(--color-saffron-500);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
     border-radius: inherit;
 }

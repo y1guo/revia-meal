@@ -29,7 +29,7 @@ const VARIANT: Record<ButtonVariant, string> = {
     'ghost-destructive':
         'text-tomato-500 hover:bg-tomato-500/10 hover:text-tomato-500',
     destructive: 'bg-tomato-500 text-white hover:bg-tomato-500/90',
-    link: 'text-[color:var(--accent-brand)] underline underline-offset-2 decoration-1 hover:decoration-2',
+    link: 'text-[color:var(--link-fg)] underline underline-offset-2 decoration-1 hover:decoration-2',
 }
 
 const SIZE: Record<ButtonSize, string> = {

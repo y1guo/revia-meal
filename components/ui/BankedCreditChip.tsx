@@ -43,7 +43,7 @@ export function BankedCreditChip({
                     </div>
                     <Link
                         href="/docs#banked-credits"
-                        className="text-[color:var(--accent-brand)] underline underline-offset-2"
+                        className="text-[color:var(--link-fg)] underline underline-offset-2"
                     >
                         Learn more →
                     </Link>
