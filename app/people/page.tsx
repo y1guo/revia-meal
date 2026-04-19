@@ -1,4 +1,15 @@
 import Link from 'next/link'
+import { signOut } from '@/app/actions'
+import { AppShell } from '@/components/shell/AppShell'
+import { PageHeader } from '@/components/shell/PageHeader'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { EmptyState } from '@/components/ui/EmptyState'
+import {
+    FlavorBar,
+    type FlavorSegment,
+} from '@/components/ui/FlavorBar'
+import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -15,7 +26,6 @@ function defaultRange(): { from: string; to: string } {
 }
 
 function toISODate(d: Date): string {
-    // en-CA's short date is YYYY-MM-DD in the server's local tz.
     return d.toLocaleDateString('en-CA')
 }
 
@@ -24,7 +34,7 @@ export default async function PeoplePage({
 }: {
     searchParams: SearchParams
 }) {
-    await requireUser()
+    const user = await requireUser()
     const params = await searchParams
     const { from: defaultFrom, to: defaultTo } = defaultRange()
     const from = params.from || defaultFrom
@@ -57,10 +67,10 @@ export default async function PeoplePage({
         ]),
     )
 
-    // Aggregate per (user, restaurant); track unique poll dates for totals.
-    type Agg = { vote_weight_sum: number; poll_count: number }
-    const userRestaurantAgg = new Map<string, Map<string, Agg>>()
+    type Agg = { weight: number; polls: number }
+    const perUser = new Map<string, Map<string, Agg>>()
     const datesByUser = new Map<string, Set<string>>()
+    const officeAgg = new Map<string, Agg>()
 
     for (const v of votesRes.data ?? []) {
         const uid = v.user_id as string
@@ -68,155 +78,197 @@ export default async function PeoplePage({
         const weight = Number(v.vote_weight)
         const date = v.scheduled_date as string
 
-        if (!userRestaurantAgg.has(uid)) userRestaurantAgg.set(uid, new Map())
-        const inner = userRestaurantAgg.get(uid)!
-        if (!inner.has(rid))
-            inner.set(rid, { vote_weight_sum: 0, poll_count: 0 })
+        if (!perUser.has(uid)) perUser.set(uid, new Map())
+        const inner = perUser.get(uid)!
+        if (!inner.has(rid)) inner.set(rid, { weight: 0, polls: 0 })
         const agg = inner.get(rid)!
-        agg.vote_weight_sum += weight
-        agg.poll_count += 1
+        agg.weight += weight
+        agg.polls += 1
 
         if (!datesByUser.has(uid)) datesByUser.set(uid, new Set())
         datesByUser.get(uid)!.add(date)
+
+        if (!officeAgg.has(rid)) officeAgg.set(rid, { weight: 0, polls: 0 })
+        const oa = officeAgg.get(rid)!
+        oa.weight += weight
+        oa.polls += 1
     }
 
-    const userRows = Array.from(userRestaurantAgg.entries())
+    const officeSegments: FlavorSegment[] = Array.from(officeAgg.entries())
+        .map(([rid, a]) => ({
+            restaurantId: rid,
+            restaurantName: restaurantMap.get(rid) ?? '(removed)',
+            weight: a.weight,
+            polls: a.polls,
+        }))
+        .sort((a, b) => b.weight - a.weight)
+
+    const officeTotals = {
+        people: perUser.size,
+        polls: Array.from(datesByUser.values()).reduce(
+            (s, set) => s + set.size,
+            0,
+        ),
+        credits: officeSegments.reduce((s, seg) => s + seg.weight, 0),
+    }
+
+    const userRows = Array.from(perUser.entries())
         .map(([uid, agg]) => {
-            const user = userMap.get(uid)
-            if (!user) return null
-            const breakdown = Array.from(agg.entries())
+            const u = userMap.get(uid)
+            if (!u) return null
+            const segments: FlavorSegment[] = Array.from(agg.entries())
                 .map(([rid, a]) => ({
                     restaurantId: rid,
                     restaurantName: restaurantMap.get(rid) ?? '(removed)',
-                    ...a,
+                    weight: a.weight,
+                    polls: a.polls,
                 }))
-                .sort((a, b) => b.vote_weight_sum - a.vote_weight_sum)
-            const totalWeight = breakdown.reduce(
-                (s, b) => s + b.vote_weight_sum,
-                0,
-            )
+                .sort((a, b) => b.weight - a.weight)
             return {
                 userId: uid,
-                displayName: user.display_name || user.email,
-                email: user.email,
-                breakdown,
-                totalWeight,
+                displayName: u.display_name || u.email,
+                isMe: uid === user.id,
+                segments,
+                totalWeight: segments.reduce((s, seg) => s + seg.weight, 0),
                 totalPolls: datesByUser.get(uid)?.size ?? 0,
             }
         })
         .filter((r): r is NonNullable<typeof r> => r !== null)
-        .sort((a, b) => b.totalPolls - a.totalPolls)
+        .sort((a, b) => {
+            if (a.isMe) return -1
+            if (b.isMe) return 1
+            return b.totalPolls - a.totalPolls
+        })
 
     return (
-        <main className="p-8 space-y-6 max-w-3xl">
-            <p className="text-sm">
-                <Link href="/" className="underline">
-                    ← Today&apos;s polls
-                </Link>
-            </p>
-            <header className="space-y-1">
-                <h1 className="text-2xl font-semibold">People</h1>
-                <p className="text-sm text-neutral-500">
-                    Each person&apos;s favorite restaurants over the selected
-                    range, based on their vote weights. Cancelled polls are
-                    included — they still represent what someone wanted that
-                    day.
-                </p>
-            </header>
+        <AppShell
+            user={user}
+            signOutAction={signOut}
+            maxWidthClassName="max-w-[1400px] 2xl:max-w-[1600px]"
+        >
+            <PageHeader
+                title="People"
+                subtitle="Everyone's flavor over the selected range, based on vote weights. Cancelled polls still represent what someone wanted that day."
+            />
 
-            <form className="flex items-end gap-3">
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">From</span>
-                    <input
-                        type="date"
-                        name="from"
-                        defaultValue={from}
-                        className="border rounded-md px-2 py-1 bg-transparent"
-                    />
-                </label>
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">To</span>
-                    <input
-                        type="date"
-                        name="to"
-                        defaultValue={to}
-                        className="border rounded-md px-2 py-1 bg-transparent"
-                    />
-                </label>
-                <button
-                    type="submit"
-                    className="border rounded-md px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-900"
-                >
-                    Apply
-                </button>
-            </form>
+            <Card className="mb-6">
+                <form className="flex flex-wrap items-end gap-3">
+                    <label className="flex flex-col gap-1">
+                        <span className="text-[0.75rem] font-medium text-[color:var(--text-secondary)]">
+                            From
+                        </span>
+                        <input
+                            type="date"
+                            name="from"
+                            defaultValue={from}
+                            className={cn(
+                                'h-9 px-2.5 rounded-[var(--radius-md)]',
+                                'bg-[color:var(--surface-raised)]',
+                                'border border-[color:var(--border-subtle)]',
+                                'text-[0.875rem] text-[color:var(--text-primary)]',
+                                'focus:border-[color:var(--accent-brand)]',
+                            )}
+                        />
+                    </label>
+                    <label className="flex flex-col gap-1">
+                        <span className="text-[0.75rem] font-medium text-[color:var(--text-secondary)]">
+                            To
+                        </span>
+                        <input
+                            type="date"
+                            name="to"
+                            defaultValue={to}
+                            className={cn(
+                                'h-9 px-2.5 rounded-[var(--radius-md)]',
+                                'bg-[color:var(--surface-raised)]',
+                                'border border-[color:var(--border-subtle)]',
+                                'text-[0.875rem] text-[color:var(--text-primary)]',
+                                'focus:border-[color:var(--accent-brand)]',
+                            )}
+                        />
+                    </label>
+                    <div className="ml-auto flex items-center gap-2">
+                        <Link
+                            href="/people"
+                            className="text-[0.875rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] underline underline-offset-2"
+                        >
+                            Reset
+                        </Link>
+                        <Button type="submit" variant="primary">
+                            Apply
+                        </Button>
+                    </div>
+                </form>
+            </Card>
 
             {userRows.length === 0 ? (
-                <p className="text-sm text-neutral-500">
-                    No votes in this range.
-                </p>
+                <EmptyState
+                    title="Nothing brewing in this range."
+                    body={`No votes recorded between ${from} and ${to}. Widen the range to see more.`}
+                />
             ) : (
-                <ul className="space-y-4">
-                    {userRows.map((row) => {
-                        const topWeight = row.breakdown[0]?.vote_weight_sum ?? 0
-                        return (
-                            <li
-                                key={row.userId}
-                                className="border rounded-md p-4 space-y-3"
-                            >
-                                <div className="flex items-center justify-between">
-                                    <span className="font-medium">
-                                        {row.displayName}
+                <div className="space-y-8">
+                    <Card className="space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h2 className="font-display font-medium text-[1rem] text-[color:var(--text-primary)]">
+                                The office
+                            </h2>
+                            <span className="text-[0.8125rem] font-mono tabular-nums text-[color:var(--text-secondary)]">
+                                {officeTotals.people}{' '}
+                                {officeTotals.people === 1 ? 'person' : 'people'}
+                                {' · '}
+                                {formatNum(officeTotals.credits)}{' '}
+                                {officeTotals.credits === 1
+                                    ? 'credit'
+                                    : 'credits'}
+                            </span>
+                        </div>
+                        <FlavorBar
+                            segments={officeSegments}
+                            height={40}
+                            className="ring-1 ring-[color:var(--border-subtle)]"
+                        />
+                    </Card>
+
+                    <div className="space-y-4">
+                        {userRows.map((row) => (
+                            <div key={row.userId} className="space-y-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <span className="font-medium text-[color:var(--text-primary)]">
+                                        {row.isMe ? (
+                                            <>
+                                                {row.displayName}{' '}
+                                                <span className="text-[color:var(--text-secondary)] font-normal">
+                                                    (You)
+                                                </span>
+                                            </>
+                                        ) : (
+                                            row.displayName
+                                        )}
                                     </span>
-                                    <span className="text-xs text-neutral-500 tabular-nums">
+                                    <span className="text-[0.8125rem] font-mono tabular-nums text-[color:var(--text-secondary)]">
                                         {row.totalPolls}{' '}
-                                        {row.totalPolls === 1 ? 'poll' : 'polls'}{' '}
-                                        · {formatNum(row.totalWeight)}{' '}
+                                        {row.totalPolls === 1 ? 'poll' : 'polls'}
+                                        {' · '}
+                                        {formatNum(row.totalWeight)}{' '}
                                         {row.totalWeight === 1
                                             ? 'credit'
                                             : 'credits'}
                                     </span>
                                 </div>
-                                <ul className="space-y-1">
-                                    {row.breakdown.map((b) => {
-                                        const pct =
-                                            topWeight > 0
-                                                ? (b.vote_weight_sum /
-                                                      topWeight) *
-                                                  100
-                                                : 0
-                                        return (
-                                            <li
-                                                key={b.restaurantId}
-                                                className="flex items-center gap-3 text-sm"
-                                            >
-                                                <span className="w-40 truncate">
-                                                    {b.restaurantName}
-                                                </span>
-                                                <span className="flex-1 h-2 bg-neutral-100 dark:bg-neutral-800 rounded-full overflow-hidden">
-                                                    <span
-                                                        className="block h-full bg-neutral-400 dark:bg-neutral-500"
-                                                        style={{
-                                                            width: `${pct}%`,
-                                                        }}
-                                                    />
-                                                </span>
-                                                <span className="tabular-nums text-xs text-neutral-500 w-28 text-right">
-                                                    {formatNum(
-                                                        b.vote_weight_sum,
-                                                    )}{' '}
-                                                    ({b.poll_count})
-                                                </span>
-                                            </li>
-                                        )
-                                    })}
-                                </ul>
-                            </li>
-                        )
-                    })}
-                </ul>
+                                <FlavorBar
+                                    segments={row.segments}
+                                    className={cn(
+                                        row.isMe &&
+                                            'ring-2 ring-[color:var(--accent-brand)] ring-offset-2 ring-offset-[color:var(--surface-base)]',
+                                    )}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
             )}
-        </main>
+        </AppShell>
     )
 }
 
