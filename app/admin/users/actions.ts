@@ -44,3 +44,21 @@ export async function updateUser(formData: FormData) {
 
     revalidatePath('/admin/users')
 }
+
+export async function deleteUser(formData: FormData) {
+    const currentAdmin = await requireAdmin()
+    const id = String(formData.get('id') ?? '')
+    if (!id) return
+    // Never let an admin delete themselves — locks them out of further
+    // admin operations and, with only one admin in the system, locks
+    // everyone out. Enforced in the UI too, but also here so the action
+    // can't be triggered via a crafted request.
+    if (id === currentAdmin.id) return
+
+    const admin = createAdminClient()
+    // Hard delete. Schema cascades: votes, daily_participation, api_keys
+    // are removed; polls.cancelled_by is set to NULL so poll history is
+    // preserved without orphaned attribution.
+    await admin.from('users').delete().eq('id', id)
+    revalidatePath('/admin/users')
+}

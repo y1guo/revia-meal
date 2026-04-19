@@ -1,6 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth'
 import { addUser, updateUser } from './actions'
+import DeleteUserButton from './delete-user-button'
 
 export default async function UsersPage() {
     const currentAdmin = await requireAdmin()
@@ -53,54 +54,64 @@ export default async function UsersPage() {
                     {users?.map((u) => {
                         const isSelf = u.id === currentAdmin.id
                         return (
-                            <form
+                            <div
                                 key={u.id}
-                                action={updateUser}
                                 className="p-4 flex items-center gap-3 flex-wrap"
                             >
-                                <input type="hidden" name="id" value={u.id} />
-                                <div className="flex-1 min-w-[220px]">
-                                    <div className="font-medium">
-                                        {u.email}
-                                        {isSelf && (
-                                            <span className="ml-2 text-xs text-neutral-500">(you)</span>
-                                        )}
-                                    </div>
-                                    <div className="text-xs text-neutral-500">
-                                        added {new Date(u.created_at).toLocaleDateString()}
-                                    </div>
-                                </div>
-                                <input
-                                    name="display_name"
-                                    defaultValue={u.display_name ?? ''}
-                                    placeholder="display name"
-                                    className="border rounded-md px-2 py-1 text-sm bg-transparent"
-                                />
-                                <select
-                                    name="role"
-                                    defaultValue={u.role}
-                                    disabled={isSelf}
-                                    className="border rounded-md px-2 py-1 text-sm bg-transparent disabled:opacity-50"
+                                <form
+                                    action={updateUser}
+                                    className="flex items-center gap-3 flex-wrap flex-1"
                                 >
-                                    <option value="user">user</option>
-                                    <option value="admin">admin</option>
-                                </select>
-                                <label className="flex items-center gap-1 text-sm">
+                                    <input type="hidden" name="id" value={u.id} />
+                                    <div className="flex-1 min-w-[220px]">
+                                        <div className="font-medium">
+                                            {u.email}
+                                            {isSelf && (
+                                                <span className="ml-2 text-xs text-neutral-500">(you)</span>
+                                            )}
+                                        </div>
+                                        <div className="text-xs text-neutral-500">
+                                            added {new Date(u.created_at).toLocaleDateString()}
+                                        </div>
+                                    </div>
                                     <input
-                                        type="checkbox"
-                                        name="is_active"
-                                        defaultChecked={u.is_active}
-                                        disabled={isSelf}
+                                        name="display_name"
+                                        defaultValue={u.display_name ?? ''}
+                                        placeholder="display name"
+                                        className="border rounded-md px-2 py-1 text-sm bg-transparent"
                                     />
-                                    active
-                                </label>
-                                <button
-                                    type="submit"
-                                    className="rounded-md border px-3 py-1 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-900"
-                                >
-                                    Save
-                                </button>
-                            </form>
+                                    <select
+                                        name="role"
+                                        defaultValue={u.role}
+                                        disabled={isSelf}
+                                        className="border rounded-md px-2 py-1 text-sm bg-transparent disabled:opacity-50"
+                                    >
+                                        <option value="user">user</option>
+                                        <option value="admin">admin</option>
+                                    </select>
+                                    <label className="flex items-center gap-1 text-sm">
+                                        <input
+                                            type="checkbox"
+                                            name="is_active"
+                                            defaultChecked={u.is_active}
+                                            disabled={isSelf}
+                                        />
+                                        active
+                                    </label>
+                                    <button
+                                        type="submit"
+                                        className="rounded-md border px-3 py-1 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-900"
+                                    >
+                                        Save
+                                    </button>
+                                </form>
+                                {!isSelf && (
+                                    <DeleteUserButton
+                                        userId={u.id}
+                                        email={u.email}
+                                    />
+                                )}
+                            </div>
                         )
                     })}
                 </div>
