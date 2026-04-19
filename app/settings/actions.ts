@@ -31,6 +31,17 @@ export async function createApiKey(
     return { ok: true, name, plaintext }
 }
 
+export async function updateDisplayName(formData: FormData) {
+    const user = await requireUser()
+    const raw = String(formData.get('display_name') ?? '').trim()
+    const display_name = raw.length > 0 ? raw.slice(0, 64) : null
+
+    const admin = createAdminClient()
+    await admin.from('users').update({ display_name }).eq('id', user.id)
+    revalidatePath('/settings')
+    revalidatePath('/')
+}
+
 export async function revokeApiKey(formData: FormData) {
     const user = await requireUser()
     const keyId = String(formData.get('key_id') ?? '')
