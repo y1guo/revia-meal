@@ -141,6 +141,20 @@ A row can be in two states:
 - **Unexercised** (`exercised_at IS NULL`): counts as both a historical vote and as banked credit for `(user, template, restaurant)`. The row's `vote_weight` is the credit's value.
 - **Exercised** (`exercised_at` set): purely historical. No longer contributes to any future tally.
 
+## poll_results
+
+Snapshot of the per-restaurant tally taken at poll finalize time. Inserted once per `(poll, restaurant on the ballot)` when the poll is finalized. Powers the Closed-state view's breakdown even months later — without this snapshot, a loser in this poll that *later* wins a different poll would have its historical banked contribution erased (because the contributing rows would have `exercised_at` set by that later win).
+
+| column        | type      | notes                                                             |
+|---------------|-----------|-------------------------------------------------------------------|
+| poll_id       | uuid (fk) |                                                                   |
+| restaurant_id | uuid (fk) |                                                                   |
+| today_votes   | numeric   | sum of `vote_weight` from this poll's vote rows for this option   |
+| banked_boost  | numeric   | sum over today's voters of their banked balance for this option    |
+| total_tally   | numeric   | `today_votes + banked_boost` — matches what the winner pick used  |
+
+Primary key: `(poll_id, restaurant_id)`. Not populated for cancelled polls.
+
 ## daily_participation
 
 Locks a user to one template's poll per local date. Written on the user's first vote of the day; used to reject subsequent votes for any other template's poll on the same `scheduled_date`.

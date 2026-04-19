@@ -13,10 +13,12 @@ export default function VoteForm({
     pollId,
     ballot,
     initialPicks,
+    bankedByRestaurant,
 }: {
     pollId: string
     ballot: Ballot[]
     initialPicks: string[]
+    bankedByRestaurant: Record<string, number>
 }) {
     const initialKey = useMemo(
         () => initialPicks.slice().sort().join('|'),
@@ -67,8 +69,15 @@ export default function VoteForm({
                                     })
                                 }}
                             />
-                            <span className="space-y-0.5">
-                                <span className="block font-medium">{r.name}</span>
+                            <span className="space-y-0.5 flex-1">
+                                <span className="flex items-center gap-2">
+                                    <span className="font-medium">{r.name}</span>
+                                    {bankedByRestaurant[r.id] > 0 && (
+                                        <span className="text-xs rounded-full px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200">
+                                            +{formatCredit(bankedByRestaurant[r.id])} banked
+                                        </span>
+                                    )}
+                                </span>
                                 {r.notes && (
                                     <span className="block text-xs text-neutral-500">
                                         {r.notes}
@@ -113,4 +122,11 @@ export default function VoteForm({
             )}
         </form>
     )
+}
+
+function formatCredit(n: number): string {
+    // Trim trailing zeros after up to 2 decimal places.
+    return n
+        .toFixed(2)
+        .replace(/\.?0+$/, '')
 }

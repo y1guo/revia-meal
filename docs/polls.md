@@ -46,10 +46,11 @@ A poll past `closes_at` with neither `finalized_at` nor `cancelled_at` set is in
      - `today_voters(R)` = the set of users who voted for `R` in this poll
      - `tally(R)` = sum over each `u ∈ today_voters(R)` of: sum of `vote_weight` from all rows where `user_id=u, restaurant_id=R, template_id=T, exercised_at IS NULL` (this includes today's row, which is itself unexercised)
    - Choose the winner as the restaurant with the highest tally (tiebreaker below).
+   - **Snapshot the breakdown**: insert one `poll_results` row per ballot restaurant with `today_votes`, `banked_boost`, `total_tally`. This freezes the historical view of why this winner won, even after later polls exercise some of these credits.
+   - **Atomically claim the finalization** with `UPDATE polls SET finalized_at=now(), winner_id=<winner> WHERE id=<poll> AND finalized_at IS NULL AND cancelled_at IS NULL RETURNING id`. If the update returns no row, another finalizer beat us — bail out without exercising.
    - **Exercise** every banked credit that contributed to the win: `UPDATE votes SET exercised_at=now(), exercised_poll_id=<this poll> WHERE template_id=T AND restaurant_id=<winner> AND user_id IN (today_voters(winner)) AND exercised_at IS NULL`. This zeros out the personal balance for every voter who got their wish today.
-   - Set `finalized_at = now()` and `winner_id`.
 
-All in one transaction. Idempotent on retry — the SELECT FOR UPDATE + status re-check guarantees a single finalizer wins.
+The atomic claim on `polls` is the race-safety pivot: only one finalizer can flip `finalized_at` from NULL to set, so only one winner is ever recorded — which matters when ties resolve via random pick. The exercise step that follows is idempotent (it filters `exercised_at IS NULL`).
 
 ### Cancellation
 

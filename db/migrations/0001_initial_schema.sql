@@ -121,6 +121,22 @@ create index votes_credit_tally_idx
 create index votes_user_template_idx on votes (user_id, template_id, scheduled_date);
 
 -- ============================================================================
+-- poll_results
+-- Snapshot of the per-restaurant tally taken at finalize time. Lets the
+-- closed-state view show an accurate breakdown even months later, when
+-- losers in this poll may have since won later polls (which would exercise
+-- their banked credits and otherwise erase the historical breakdown).
+-- ============================================================================
+create table poll_results (
+    poll_id uuid not null references polls(id) on delete cascade,
+    restaurant_id uuid not null references restaurants(id) on delete restrict,
+    today_votes numeric not null check (today_votes >= 0),
+    banked_boost numeric not null check (banked_boost >= 0),
+    total_tally numeric not null,
+    primary key (poll_id, restaurant_id)
+);
+
+-- ============================================================================
 -- daily_participation
 -- Locks a user to one template's poll per local date.
 -- ============================================================================
