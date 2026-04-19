@@ -1,7 +1,15 @@
 import Link from 'next/link'
+import { signOut } from '@/app/actions'
+import { AppShell } from '@/components/shell/AppShell'
+import { PageHeader } from '@/components/shell/PageHeader'
+import { Button } from '@/components/ui/Button'
+import { Card } from '@/components/ui/Card'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { StatusBadge } from '@/components/ui/StatusBadge'
 import { requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPollStatus } from '@/lib/polls'
+import { cn } from '@/lib/cn'
 
 type SearchParams = Promise<{
     template?: string
@@ -11,13 +19,6 @@ type SearchParams = Promise<{
     winner?: string
     participant?: string
 }>
-
-type HistoryStatus = 'closed' | 'cancelled'
-
-const STATUS_STYLES: Record<HistoryStatus, string> = {
-    closed: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200',
-    cancelled: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200',
-}
 
 function defaultRange(): { from: string; to: string } {
     const today = new Date()
@@ -34,7 +35,7 @@ export default async function HistoryPage({
 }: {
     searchParams: SearchParams
 }) {
-    await requireUser()
+    const user = await requireUser()
     const params = await searchParams
     const { from: defaultFrom, to: defaultTo } = defaultRange()
     const from = params.from || defaultFrom
@@ -79,8 +80,6 @@ export default async function HistoryPage({
         const participantPollIds = Array.from(
             new Set((pRows ?? []).map((r) => r.poll_id as string)),
         )
-        // Sentinel UUID keeps the `.in()` filter well-formed when there are
-        // no matches.
         pollsQuery = pollsQuery.in(
             'id',
             participantPollIds.length > 0
@@ -92,7 +91,6 @@ export default async function HistoryPage({
     const { data: pollsData } = await pollsQuery
     const allPolls = pollsData ?? []
 
-    // Apply status filter (derived; only closed/cancelled reachable here).
     const polls = statusFilter
         ? allPolls.filter((p) => getPollStatus(p) === statusFilter)
         : allPolls
@@ -126,115 +124,104 @@ export default async function HistoryPage({
     )
 
     return (
-        <main className="p-8 space-y-6 max-w-4xl">
-            <p className="text-sm">
-                <Link href="/" className="underline">
-                    ← Today&apos;s polls
-                </Link>
-            </p>
-            <header className="space-y-1">
-                <h1 className="text-2xl font-semibold">History</h1>
-                <p className="text-sm text-neutral-500">
-                    Past polls — closed or cancelled. Filter by template, date
-                    range, winner, or participant.
-                </p>
-            </header>
+        <AppShell
+            user={user}
+            signOutAction={signOut}
+            maxWidthClassName="max-w-[1200px] 2xl:max-w-[1400px]"
+        >
+            <PageHeader
+                title="History"
+                subtitle="Past polls — closed or cancelled. Filter by template, date, winner, or participant."
+            />
 
-            <form className="flex flex-wrap items-end gap-3">
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">Template</span>
-                    <select
-                        name="template"
-                        defaultValue={templateFilter}
-                        className="border rounded-md px-2 py-1 bg-transparent min-w-32"
-                    >
-                        <option value="">All</option>
-                        {(templatesRes.data ?? []).map((t) => (
-                            <option key={t.id} value={t.id}>
-                                {t.name}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">From</span>
-                    <input
-                        type="date"
-                        name="from"
-                        defaultValue={from}
-                        className="border rounded-md px-2 py-1 bg-transparent"
-                    />
-                </label>
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">To</span>
-                    <input
-                        type="date"
-                        name="to"
-                        defaultValue={to}
-                        className="border rounded-md px-2 py-1 bg-transparent"
-                    />
-                </label>
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">Status</span>
-                    <select
-                        name="status"
-                        defaultValue={statusFilter}
-                        className="border rounded-md px-2 py-1 bg-transparent"
-                    >
-                        <option value="">All</option>
-                        <option value="closed">Closed</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
-                </label>
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">Winner</span>
-                    <select
-                        name="winner"
-                        defaultValue={winnerFilter}
-                        className="border rounded-md px-2 py-1 bg-transparent min-w-32"
-                    >
-                        <option value="">Any</option>
-                        {(restaurantsRes.data ?? []).map((r) => (
-                            <option key={r.id} value={r.id}>
-                                {r.name}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <label className="grid gap-1">
-                    <span className="text-xs text-neutral-500">Participant</span>
-                    <select
-                        name="participant"
-                        defaultValue={participantFilter}
-                        className="border rounded-md px-2 py-1 bg-transparent min-w-40"
-                    >
-                        <option value="">Anyone</option>
-                        {(usersRes.data ?? []).map((u) => (
-                            <option key={u.id} value={u.id}>
-                                {u.display_name || u.email}
-                            </option>
-                        ))}
-                    </select>
-                </label>
-                <button
-                    type="submit"
-                    className="border rounded-md px-3 py-1.5 text-sm hover:bg-neutral-100 dark:hover:bg-neutral-900"
-                >
-                    Apply
-                </button>
-            </form>
+            <Card className="mb-6">
+                {/* TODO(design): replace native date inputs with DateRangeField
+                    primitive once we add react-day-picker (docs/design/pages.md §/history).
+                    Native <select> here is the expedient MVP — Radix Select reserves
+                    empty-string and complicates "All" semantics for GET filters. */}
+                <form className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
+                    <FilterField label="Template">
+                        <NativeSelect name="template" defaultValue={templateFilter}>
+                            <option value="">All</option>
+                            {(templatesRes.data ?? []).map((t) => (
+                                <option key={t.id} value={t.id}>
+                                    {t.name}
+                                </option>
+                            ))}
+                        </NativeSelect>
+                    </FilterField>
+                    <FilterField label="From">
+                        <NativeInput
+                            type="date"
+                            name="from"
+                            defaultValue={from}
+                        />
+                    </FilterField>
+                    <FilterField label="To">
+                        <NativeInput
+                            type="date"
+                            name="to"
+                            defaultValue={to}
+                        />
+                    </FilterField>
+                    <FilterField label="Status">
+                        <NativeSelect name="status" defaultValue={statusFilter}>
+                            <option value="">All</option>
+                            <option value="closed">Closed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </NativeSelect>
+                    </FilterField>
+                    <FilterField label="Winner">
+                        <NativeSelect name="winner" defaultValue={winnerFilter}>
+                            <option value="">Any</option>
+                            {(restaurantsRes.data ?? []).map((r) => (
+                                <option key={r.id} value={r.id}>
+                                    {r.name}
+                                </option>
+                            ))}
+                        </NativeSelect>
+                    </FilterField>
+                    <FilterField label="Participant">
+                        <NativeSelect
+                            name="participant"
+                            defaultValue={participantFilter}
+                        >
+                            <option value="">Anyone</option>
+                            {(usersRes.data ?? []).map((u) => (
+                                <option key={u.id} value={u.id}>
+                                    {u.display_name || u.email}
+                                </option>
+                            ))}
+                        </NativeSelect>
+                    </FilterField>
+                    <div className="col-span-full flex items-center justify-end gap-2">
+                        <Link
+                            href="/history"
+                            className="text-[0.875rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] underline underline-offset-2"
+                        >
+                            Clear filters
+                        </Link>
+                        <Button type="submit" variant="primary">
+                            Apply
+                        </Button>
+                    </div>
+                </form>
+            </Card>
 
             {polls.length === 0 ? (
-                <p className="text-sm text-neutral-500">
-                    No polls match these filters.
-                </p>
+                <EmptyState
+                    title="No polls match these filters."
+                    body="Try widening the date range, or clear filters to start over."
+                    action={
+                        <Link href="/history">
+                            <Button variant="secondary">Clear filters</Button>
+                        </Link>
+                    }
+                />
             ) : (
-                <ul className="border rounded-md divide-y">
+                <ul className="space-y-2 2xl:grid 2xl:grid-cols-2 2xl:gap-3 2xl:space-y-0">
                     {polls.map((p) => {
-                        const displayStatus: HistoryStatus =
-                            getPollStatus(p) === 'cancelled'
-                                ? 'cancelled'
-                                : 'closed'
+                        const status = getPollStatus(p)
                         const templateName =
                             templateMap.get(p.template_id as string) ??
                             '(removed template)'
@@ -248,52 +235,105 @@ export default async function HistoryPage({
                             <li key={p.id as string}>
                                 <Link
                                     href={`/polls/${p.id}`}
-                                    className="block p-4 hover:bg-neutral-50 dark:hover:bg-neutral-900 space-y-1"
+                                    className="block"
                                 >
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="font-medium">
-                                            {templateName}
-                                        </span>
-                                        <span className="text-xs text-neutral-500 tabular-nums">
-                                            {formatDate(
-                                                p.scheduled_date as string,
-                                            )}
-                                        </span>
-                                        <span
-                                            className={`text-xs rounded-full px-2 py-0.5 ${STATUS_STYLES[displayStatus]}`}
-                                        >
-                                            {displayStatus}
-                                        </span>
-                                    </div>
-                                    <div className="text-xs text-neutral-500">
-                                        {voters}{' '}
-                                        {voters === 1 ? 'voter' : 'voters'}
-                                        {winnerName &&
-                                            displayStatus === 'closed' && (
+                                    <Card interactive className="space-y-1.5">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="font-medium text-[color:var(--text-primary)]">
+                                                {templateName}
+                                            </span>
+                                            <span className="text-[0.8125rem] text-[color:var(--text-secondary)] tabular-nums">
+                                                {formatDate(
+                                                    p.scheduled_date as string,
+                                                )}
+                                            </span>
+                                            <StatusBadge status={status} />
+                                        </div>
+                                        <div className="text-[0.8125rem] text-[color:var(--text-secondary)]">
+                                            {voters}{' '}
+                                            {voters === 1 ? 'voter' : 'voters'}
+                                            {winnerName &&
+                                                status === 'closed' && (
+                                                    <>
+                                                        {' '}· winner:{' '}
+                                                        <strong className="text-[color:var(--text-primary)]">
+                                                            {winnerName}
+                                                        </strong>
+                                                    </>
+                                                )}
+                                            {status === 'cancelled' && (
                                                 <>
-                                                    {' '}· winner:{' '}
-                                                    <strong>
-                                                        {winnerName}
-                                                    </strong>
+                                                    {' '}·{' '}
+                                                    {p.cancellation_reason ===
+                                                    'no_votes'
+                                                        ? 'no votes'
+                                                        : 'cancelled by admin'}
                                                 </>
                                             )}
-                                        {displayStatus === 'cancelled' && (
-                                            <>
-                                                {' '}·{' '}
-                                                {p.cancellation_reason ===
-                                                'no_votes'
-                                                    ? 'no votes'
-                                                    : 'cancelled by admin'}
-                                            </>
-                                        )}
-                                    </div>
+                                        </div>
+                                    </Card>
                                 </Link>
                             </li>
                         )
                     })}
                 </ul>
             )}
-        </main>
+        </AppShell>
+    )
+}
+
+function FilterField({
+    label,
+    children,
+}: {
+    label: string
+    children: React.ReactNode
+}) {
+    return (
+        <label className="flex flex-col gap-1">
+            <span className="text-[0.75rem] font-medium text-[color:var(--text-secondary)]">
+                {label}
+            </span>
+            {children}
+        </label>
+    )
+}
+
+function NativeSelect({
+    className,
+    ...rest
+}: React.SelectHTMLAttributes<HTMLSelectElement>) {
+    return (
+        <select
+            {...rest}
+            className={cn(
+                'h-9 px-2.5 rounded-[var(--radius-md)]',
+                'bg-[color:var(--surface-raised)]',
+                'border border-[color:var(--border-subtle)]',
+                'text-[0.875rem] text-[color:var(--text-primary)]',
+                'focus:border-[color:var(--accent-brand)]',
+                className,
+            )}
+        />
+    )
+}
+
+function NativeInput({
+    className,
+    ...rest
+}: React.InputHTMLAttributes<HTMLInputElement>) {
+    return (
+        <input
+            {...rest}
+            className={cn(
+                'h-9 px-2.5 rounded-[var(--radius-md)]',
+                'bg-[color:var(--surface-raised)]',
+                'border border-[color:var(--border-subtle)]',
+                'text-[0.875rem] text-[color:var(--text-primary)]',
+                'focus:border-[color:var(--accent-brand)]',
+                className,
+            )}
+        />
     )
 }
 
