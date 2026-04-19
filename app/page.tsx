@@ -24,6 +24,9 @@ export default async function Home() {
                     <Link href="/people" className="underline">
                         People
                     </Link>
+                    <Link href="/history" className="underline">
+                        History
+                    </Link>
                     {user.role === 'admin' && (
                         <Link href="/admin" className="underline">
                             Admin
