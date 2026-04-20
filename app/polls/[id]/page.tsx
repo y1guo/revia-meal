@@ -5,7 +5,7 @@ import { signOut } from '@/app/actions'
 import { AppShell } from '@/components/shell/AppShell'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Avatar } from '@/components/ui/Avatar'
-import { BackLink } from '@/components/ui/BackLink'
+import { SmartBackLink } from '@/components/ui/SmartBackLink'
 import { Card } from '@/components/ui/Card'
 import { Chip } from '@/components/ui/Chip'
 import { CountUp } from '@/components/ui/CountUp'
@@ -253,7 +253,7 @@ export default async function PollPage({ params }: { params: Params }) {
             signOutAction={signOut}
             maxWidthClassName="max-w-[880px]"
         >
-            <BackLink href="/">Today&apos;s polls</BackLink>
+            <SmartBackLink fallbackHref="/">Back</SmartBackLink>
             <PageHeader
                 title={template?.name ?? 'Poll'}
                 subtitle={
