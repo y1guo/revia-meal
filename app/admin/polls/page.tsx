@@ -107,13 +107,48 @@ export default async function AdminPollsPage({
     )
 
     const pollIds = pagePolls.map((p) => p.id as string)
-    const { data: voteRows } =
+    const closedPollIds = pagePolls
+        .filter((p) => getPollStatus(p) === 'closed')
+        .map((p) => p.id as string)
+    const [{ data: voteRows }, { data: optionRows }] = await Promise.all([
         pollIds.length > 0
-            ? await admin
+            ? admin
                   .from('votes')
                   .select('poll_id, user_id')
                   .in('poll_id', pollIds)
-            : { data: [] as { poll_id: string; user_id: string }[] }
+            : Promise.resolve({
+                  data: [] as { poll_id: string; user_id: string }[],
+              }),
+        closedPollIds.length > 0
+            ? admin
+                  .from('poll_options')
+                  .select('poll_id, restaurant_id')
+                  .in('poll_id', closedPollIds)
+            : Promise.resolve({
+                  data: [] as { poll_id: string; restaurant_id: string }[],
+              }),
+    ])
+    const restaurantNameById = new Map(
+        (restaurantsRes.data ?? []).map((r) => [
+            r.id as string,
+            r.name as string,
+        ]),
+    )
+    const ballotByPoll = new Map<
+        string,
+        Array<{ id: string; name: string }>
+    >()
+    for (const o of optionRows ?? []) {
+        const pid = o.poll_id as string
+        const rid = o.restaurant_id as string
+        const name = restaurantNameById.get(rid)
+        if (!name) continue
+        if (!ballotByPoll.has(pid)) ballotByPoll.set(pid, [])
+        ballotByPoll.get(pid)!.push({ id: rid, name })
+    }
+    for (const list of ballotByPoll.values()) {
+        list.sort((a, b) => a.name.localeCompare(b.name))
+    }
     const voterSets = new Map<string, Set<string>>()
     for (const v of voteRows ?? []) {
         const pid = v.poll_id as string
@@ -126,12 +161,6 @@ export default async function AdminPollsPage({
 
     const templateMap = new Map(
         (templatesRes.data ?? []).map((t) => [t.id as string, t.name as string]),
-    )
-    const restaurantMap = new Map(
-        (restaurantsRes.data ?? []).map((r) => [
-            r.id as string,
-            r.name as string,
-        ]),
     )
     const userMap = new Map(
         (usersRes.data ?? []).map((u) => [
@@ -148,7 +177,7 @@ export default async function AdminPollsPage({
         const templateName =
             templateMap.get(p.template_id as string) ?? '(removed template)'
         const winnerName = p.winner_id
-            ? (restaurantMap.get(p.winner_id as string) ?? '(removed)')
+            ? (restaurantNameById.get(p.winner_id as string) ?? '(removed)')
             : null
         const cancelledBy = p.cancelled_by
             ? (userMap.get(p.cancelled_by as string) ?? null)
@@ -160,12 +189,14 @@ export default async function AdminPollsPage({
             dateLabel,
             status,
             voters: voterCountByPoll.get(p.id as string) ?? 0,
+            winnerId: (p.winner_id as string | null) ?? null,
             winnerName,
             cancelledReason:
                 (p.cancellation_reason as 'admin' | 'no_votes' | null) ?? null,
             cancelledByLabel: cancelledBy
                 ? cancelledBy.display_name || cancelledBy.email
                 : null,
+            ballot: status === 'closed' ? ballotByPoll.get(p.id as string) ?? [] : null,
         }
     })
 

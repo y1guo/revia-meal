@@ -1,6 +1,6 @@
 'use client'
 
-import { ExternalLink, XCircle } from 'lucide-react'
+import { ExternalLink, Shuffle, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable'
@@ -12,6 +12,7 @@ import {
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import type { PollStatus } from '@/lib/polls'
 import { cancelPollAction } from './actions'
+import { OverrideWinnerModal } from './override-winner-modal'
 
 export type PollTableRow = {
     id: string
@@ -19,14 +20,21 @@ export type PollTableRow = {
     dateLabel: string
     status: PollStatus
     voters: number
+    winnerId: string | null
     winnerName: string | null
     cancelledReason: 'admin' | 'no_votes' | null
     cancelledByLabel: string | null
+    /** Ballot restaurants for closed polls; null otherwise. Used by the
+     *  override-winner modal to offer alternatives. */
+    ballot: { id: string; name: string }[] | null
 }
 
 export function PollsTable({ rows }: { rows: PollTableRow[] }) {
     const router = useRouter()
     const [cancelTarget, setCancelTarget] = useState<PollTableRow | null>(null)
+    const [overrideTarget, setOverrideTarget] = useState<PollTableRow | null>(
+        null,
+    )
 
     const handleCancel = async () => {
         if (!cancelTarget) return
@@ -125,6 +133,14 @@ export function PollsTable({ rows }: { rows: PollTableRow[] }) {
                         >
                             View poll
                         </RowActionItem>
+                        {p.status === 'closed' && p.ballot && p.ballot.length > 1 && (
+                            <RowActionItem
+                                icon={Shuffle}
+                                onSelect={() => setOverrideTarget(p)}
+                            >
+                                Override winner…
+                            </RowActionItem>
+                        )}
                         {p.status !== 'cancelled' && (
                             <RowActionItem
                                 icon={XCircle}
@@ -159,6 +175,25 @@ export function PollsTable({ rows }: { rows: PollTableRow[] }) {
                         : 'Voting stops immediately. Any credits consumed today come back, participation locks are released, and the poll is marked cancelled. The row itself is preserved.'}
                 </p>
             </DestructiveConfirmModal>
+
+            {overrideTarget && overrideTarget.ballot && (
+                <OverrideWinnerModal
+                    open={overrideTarget !== null}
+                    onOpenChange={(o) => {
+                        if (!o) setOverrideTarget(null)
+                    }}
+                    pollId={overrideTarget.id}
+                    templateName={overrideTarget.templateName}
+                    dateLabel={overrideTarget.dateLabel}
+                    currentWinnerId={overrideTarget.winnerId}
+                    currentWinnerName={overrideTarget.winnerName}
+                    ballot={overrideTarget.ballot}
+                    onSaved={() => {
+                        setOverrideTarget(null)
+                        router.refresh()
+                    }}
+                />
+            )}
         </>
     )
 }

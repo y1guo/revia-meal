@@ -6,6 +6,7 @@ import { AppShell } from '@/components/shell/AppShell'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Avatar } from '@/components/ui/Avatar'
 import { SmartBackLink } from '@/components/ui/SmartBackLink'
+import { OverrideBanner, type OverrideEntry } from './override-banner'
 import { Card } from '@/components/ui/Card'
 import { Chip } from '@/components/ui/Chip'
 import { CountUp } from '@/components/ui/CountUp'
@@ -200,6 +201,7 @@ export default async function PollPage({ params }: { params: Params }) {
 
     let closedTallies: ClosedTally[] = []
     let closedVoters: VoterPick[] = []
+    let overrideEntries: OverrideEntry[] = []
     if (status === 'closed' || status === 'cancelled') {
         const [resultsRes, allVotesRes] = await Promise.all([
             admin
@@ -245,6 +247,69 @@ export default async function PollPage({ params }: { params: Params }) {
             email: userMap.get(v.user_id as string)?.email ?? '',
             avatar_url: userMap.get(v.user_id as string)?.avatar_url ?? null,
         }))
+
+        if (status === 'closed') {
+            const { data: overrideRows } = await admin
+                .from('poll_overrides')
+                .select(
+                    'overridden_at, reason, old_winner_id, new_winner_id, overridden_by',
+                )
+                .eq('poll_id', id)
+                .order('overridden_at', { ascending: false })
+
+            if (overrideRows && overrideRows.length > 0) {
+                const restaurantIdSet = new Set<string>()
+                const adminIdSet = new Set<string>()
+                for (const o of overrideRows) {
+                    restaurantIdSet.add(o.old_winner_id as string)
+                    restaurantIdSet.add(o.new_winner_id as string)
+                    if (o.overridden_by) adminIdSet.add(o.overridden_by as string)
+                }
+                const [restaurantNameRes, adminNameRes] = await Promise.all([
+                    admin
+                        .from('restaurants')
+                        .select('id, name')
+                        .in('id', Array.from(restaurantIdSet)),
+                    adminIdSet.size > 0
+                        ? admin
+                              .from('users')
+                              .select('id, display_name, email')
+                              .in('id', Array.from(adminIdSet))
+                        : Promise.resolve({
+                              data: [] as {
+                                  id: string
+                                  display_name: string | null
+                                  email: string
+                              }[],
+                          }),
+                ])
+                const restaurantNames = new Map(
+                    (restaurantNameRes.data ?? []).map((r) => [
+                        r.id as string,
+                        r.name as string,
+                    ]),
+                )
+                const adminNames = new Map(
+                    (adminNameRes.data ?? []).map((u) => [
+                        u.id as string,
+                        (u.display_name as string | null) || (u.email as string),
+                    ]),
+                )
+                overrideEntries = overrideRows.map((o) => ({
+                    overriddenAt: o.overridden_at as string,
+                    overriddenByName: o.overridden_by
+                        ? adminNames.get(o.overridden_by as string) ?? null
+                        : null,
+                    oldWinnerName:
+                        restaurantNames.get(o.old_winner_id as string) ??
+                        '(removed)',
+                    newWinnerName:
+                        restaurantNames.get(o.new_winner_id as string) ??
+                        '(removed)',
+                    reason: (o.reason as string | null) ?? null,
+                }))
+            }
+        }
     }
 
     return (
@@ -295,13 +360,16 @@ export default async function PollPage({ params }: { params: Params }) {
                         )}
                     />
                 ) : status === 'closed' ? (
-                    <ClosedBreakdown
-                        restaurants={restaurants}
-                        tallies={closedTallies}
-                        voters={closedVoters}
-                        winnerId={poll.winner_id}
-                        currentUserId={user.id}
-                    />
+                    <>
+                        <OverrideBanner overrides={overrideEntries} />
+                        <ClosedBreakdown
+                            restaurants={restaurants}
+                            tallies={closedTallies}
+                            voters={closedVoters}
+                            winnerId={poll.winner_id}
+                            currentUserId={user.id}
+                        />
+                    </>
                 ) : (
                     <BallotPreview
                         restaurants={restaurants}

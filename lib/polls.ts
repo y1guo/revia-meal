@@ -521,3 +521,117 @@ export async function cancelPoll(
 
     return { status: 'ok' }
 }
+
+export type OverrideResult =
+    | { status: 'ok' }
+    | { status: 'noop'; reason: 'same-winner' }
+    | { status: 'error'; error: string }
+
+/**
+ * Admin-override the winner of a finalized, non-cancelled poll. Un-exercises
+ * the current winner's credits (rolling them back into voters' banks) and
+ * exercises the new winner's credits from this poll's voters. Inserts a
+ * poll_overrides audit row. Leaves the poll_results snapshot untouched —
+ * it preserves the original computed tally as the historical record.
+ *
+ * Uses an optimistic lock on winner_id to serialize concurrent overrides:
+ * only the first one lands; subsequent attempts from a stale view get an
+ * error and should retry.
+ *
+ * Narrow race: a cancel landing between the atomic claim and the exercise
+ * step can leave votes with exercised_poll_id pointing at the now-cancelled
+ * poll. Same shape as finalizePoll's documented race. Acceptable for a
+ * 15-person internal app.
+ */
+export async function overridePollWinner(args: {
+    adminUserId: string
+    pollId: string
+    newWinnerId: string
+    reason: string | null
+}): Promise<OverrideResult> {
+    const { adminUserId, pollId, newWinnerId, reason } = args
+    const admin = createAdminClient()
+
+    const { data: poll } = await admin
+        .from('polls')
+        .select('id, template_id, finalized_at, cancelled_at, winner_id')
+        .eq('id', pollId)
+        .maybeSingle()
+
+    if (!poll) return { status: 'error', error: 'Poll not found.' }
+    if (!poll.finalized_at) {
+        return { status: 'error', error: 'Poll is not finalized.' }
+    }
+    if (poll.cancelled_at) {
+        return { status: 'error', error: 'Poll is cancelled.' }
+    }
+    if (poll.winner_id === newWinnerId) {
+        return { status: 'noop', reason: 'same-winner' }
+    }
+
+    const { data: option } = await admin
+        .from('poll_options')
+        .select('restaurant_id')
+        .eq('poll_id', pollId)
+        .eq('restaurant_id', newWinnerId)
+        .maybeSingle()
+    if (!option) {
+        return {
+            status: 'error',
+            error: "Restaurant is not on this poll's ballot.",
+        }
+    }
+
+    const oldWinnerId = poll.winner_id as string
+
+    const { data: claimed } = await admin
+        .from('polls')
+        .update({ winner_id: newWinnerId })
+        .eq('id', pollId)
+        .eq('winner_id', oldWinnerId)
+        .not('finalized_at', 'is', null)
+        .is('cancelled_at', null)
+        .select('id')
+        .maybeSingle()
+    if (!claimed) {
+        return {
+            status: 'error',
+            error: 'Poll state changed before the override completed. Retry.',
+        }
+    }
+
+    await admin
+        .from('votes')
+        .update({ exercised_at: null, exercised_poll_id: null })
+        .eq('exercised_poll_id', pollId)
+
+    const { data: voteRows } = await admin
+        .from('votes')
+        .select('user_id')
+        .eq('poll_id', pollId)
+    const voterIds = Array.from(
+        new Set((voteRows ?? []).map((v) => v.user_id as string)),
+    )
+    if (voterIds.length > 0) {
+        await admin
+            .from('votes')
+            .update({
+                exercised_at: new Date().toISOString(),
+                exercised_poll_id: pollId,
+            })
+            .eq('template_id', poll.template_id)
+            .eq('restaurant_id', newWinnerId)
+            .in('user_id', voterIds)
+            .is('exercised_at', null)
+    }
+
+    await admin.from('poll_overrides').insert({
+        poll_id: pollId,
+        overridden_by: adminUserId,
+        old_winner_id: oldWinnerId,
+        new_winner_id: newWinnerId,
+        reason,
+    })
+
+    return { status: 'ok' }
+}
