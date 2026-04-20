@@ -128,7 +128,7 @@ export default async function UsersPage() {
                                 <Card>
                                     <form
                                         action={updateUser}
-                                        className="grid gap-3 md:grid-cols-[2fr_2fr_auto_auto_auto] items-start"
+                                        className="grid gap-3 md:grid-cols-[2fr_2fr_auto_auto_140px] items-start"
                                     >
                                         <input
                                             type="hidden"
