@@ -141,26 +141,24 @@ export function AvatarMenu({
                         </>
                     )}
                     <DropdownMenu.Separator className="my-1 h-px bg-[color:var(--border-subtle)]" />
-                    <DropdownMenu.Item asChild>
-                        <form action={signOutAction} className="contents">
-                            <button
-                                type="submit"
-                                className={cn(
-                                    'flex w-full items-center gap-2 px-2 py-1.5 rounded-[var(--radius-md)]',
-                                    'text-[0.875rem] text-[color:var(--text-primary)]',
-                                    'data-[highlighted]:bg-[color:var(--surface-sunken)]',
-                                    'outline-none cursor-pointer',
-                                )}
-                            >
-                                <LogOut
-                                    size={16}
-                                    strokeWidth={1.75}
-                                    aria-hidden="true"
-                                    className="text-[color:var(--text-secondary)]"
-                                />
-                                Sign out
-                            </button>
-                        </form>
+                    <DropdownMenu.Item
+                        onSelect={() => {
+                            void signOutAction()
+                        }}
+                        className={cn(
+                            'flex items-center gap-2 px-2 py-1.5 rounded-[var(--radius-md)]',
+                            'text-[0.875rem] text-[color:var(--text-primary)]',
+                            'data-[highlighted]:bg-[color:var(--surface-sunken)]',
+                            'outline-none cursor-pointer',
+                        )}
+                    >
+                        <LogOut
+                            size={16}
+                            strokeWidth={1.75}
+                            aria-hidden="true"
+                            className="text-[color:var(--text-secondary)]"
+                        />
+                        Sign out
                     </DropdownMenu.Item>
                 </DropdownMenu.Content>
             </DropdownMenu.Portal>
