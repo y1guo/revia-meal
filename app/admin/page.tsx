@@ -69,11 +69,11 @@ export default async function AdminHome() {
             admin
                 .from('poll_templates')
                 .select('id', { count: 'exact', head: true })
-                .eq('active', true),
+                .eq('is_active', true),
             admin
                 .from('restaurants')
                 .select('id', { count: 'exact', head: true })
-                .eq('active', true),
+                .eq('is_active', true),
             admin
                 .from('polls')
                 .select('id', { count: 'exact', head: true })
