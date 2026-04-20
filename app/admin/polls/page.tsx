@@ -53,7 +53,7 @@ export default async function AdminPollsPage({
 
     const [templatesRes, restaurantsRes, usersRes] = await Promise.all([
         admin.from('poll_templates').select('id, name').order('name'),
-        admin.from('restaurants').select('id, name').order('name'),
+        admin.from('restaurants').select('id, name, is_active').order('name'),
         admin
             .from('users')
             .select('id, display_name, email')
@@ -110,24 +110,47 @@ export default async function AdminPollsPage({
     const closedPollIds = pagePolls
         .filter((p) => getPollStatus(p) === 'closed')
         .map((p) => p.id as string)
-    const [{ data: voteRows }, { data: optionRows }] = await Promise.all([
-        pollIds.length > 0
-            ? admin
-                  .from('votes')
-                  .select('poll_id, user_id')
-                  .in('poll_id', pollIds)
-            : Promise.resolve({
-                  data: [] as { poll_id: string; user_id: string }[],
-              }),
-        closedPollIds.length > 0
-            ? admin
-                  .from('poll_options')
-                  .select('poll_id, restaurant_id')
-                  .in('poll_id', closedPollIds)
-            : Promise.resolve({
-                  data: [] as { poll_id: string; restaurant_id: string }[],
-              }),
-    ])
+    const editablePollIds = pagePolls
+        .filter((p) => {
+            const s = getPollStatus(p)
+            return s === 'scheduled' || s === 'open'
+        })
+        .map((p) => p.id as string)
+    const [{ data: voteRows }, { data: optionRows }, { data: editableOptionRows }] =
+        await Promise.all([
+            pollIds.length > 0
+                ? admin
+                      .from('votes')
+                      .select('poll_id, user_id')
+                      .in('poll_id', pollIds)
+                : Promise.resolve({
+                      data: [] as { poll_id: string; user_id: string }[],
+                  }),
+            closedPollIds.length > 0
+                ? admin
+                      .from('poll_options')
+                      .select('poll_id, restaurant_id, disabled_at')
+                      .in('poll_id', closedPollIds)
+                : Promise.resolve({
+                      data: [] as {
+                          poll_id: string
+                          restaurant_id: string
+                          disabled_at: string | null
+                      }[],
+                  }),
+            editablePollIds.length > 0
+                ? admin
+                      .from('poll_options')
+                      .select('poll_id, restaurant_id, disabled_at')
+                      .in('poll_id', editablePollIds)
+                : Promise.resolve({
+                      data: [] as {
+                          poll_id: string
+                          restaurant_id: string
+                          disabled_at: string | null
+                      }[],
+                  }),
+        ])
     const restaurantNameById = new Map(
         (restaurantsRes.data ?? []).map((r) => [
             r.id as string,
@@ -148,6 +171,28 @@ export default async function AdminPollsPage({
     }
     for (const list of ballotByPoll.values()) {
         list.sort((a, b) => a.name.localeCompare(b.name))
+    }
+    const editableBallotByPoll = new Map<
+        string,
+        Array<{ id: string; name: string; disabled: boolean }>
+    >()
+    for (const o of editableOptionRows ?? []) {
+        const pid = o.poll_id as string
+        const rid = o.restaurant_id as string
+        const name = restaurantNameById.get(rid)
+        if (!name) continue
+        if (!editableBallotByPoll.has(pid)) editableBallotByPoll.set(pid, [])
+        editableBallotByPoll.get(pid)!.push({
+            id: rid,
+            name,
+            disabled: o.disabled_at !== null,
+        })
+    }
+    for (const list of editableBallotByPoll.values()) {
+        list.sort((a, b) => {
+            if (a.disabled !== b.disabled) return a.disabled ? 1 : -1
+            return a.name.localeCompare(b.name)
+        })
     }
     const voterSets = new Map<string, Set<string>>()
     for (const v of voteRows ?? []) {
@@ -192,13 +237,26 @@ export default async function AdminPollsPage({
             winnerId: (p.winner_id as string | null) ?? null,
             winnerName,
             cancelledReason:
-                (p.cancellation_reason as 'admin' | 'no_votes' | null) ?? null,
+                (p.cancellation_reason as
+                    | 'admin'
+                    | 'no_votes'
+                    | 'no_available_restaurants'
+                    | null) ?? null,
             cancelledByLabel: cancelledBy
                 ? cancelledBy.display_name || cancelledBy.email
                 : null,
             ballot: status === 'closed' ? ballotByPoll.get(p.id as string) ?? [] : null,
+            editableBallot:
+                status === 'scheduled' || status === 'open'
+                    ? editableBallotByPoll.get(p.id as string) ?? []
+                    : null,
         }
     })
+
+    const catalog = (restaurantsRes.data ?? [])
+        .filter((r) => Boolean(r.is_active))
+        .map((r) => ({ id: r.id as string, name: r.name as string }))
+        .sort((a, b) => a.name.localeCompare(b.name))
 
     return (
         <>
@@ -293,7 +351,7 @@ export default async function AdminPollsPage({
                         noun="poll"
                     />
                 </div>
-                <PollsTable rows={rows} />
+                <PollsTable rows={rows} catalog={catalog} />
                 <Pagination page={page} total={total} pageSize={PAGE_SIZE} />
             </div>
         </>

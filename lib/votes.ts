@@ -32,13 +32,27 @@ export async function submitVoteForUser(
     if (picks.length > 0) {
         const { data: options } = await admin
             .from('poll_options')
+            .select('restaurant_id, disabled_at')
+            .eq('poll_id', pollId)
+        const activeIds = new Set(
+            (options ?? [])
+                .filter((o) => o.disabled_at === null)
+                .map((o) => o.restaurant_id as string),
+        )
+        // Allow picks for disabled options only if this user already had a
+        // vote for them before the admin disabled the option. Blocks new
+        // ticks on disabled entries while preserving the "unvote-only"
+        // affordance in the UI.
+        const { data: existingVotes } = await admin
+            .from('votes')
             .select('restaurant_id')
             .eq('poll_id', pollId)
-        const allowed = new Set(
-            (options ?? []).map((o) => o.restaurant_id as string),
+            .eq('user_id', userId)
+        const existingIds = new Set(
+            (existingVotes ?? []).map((v) => v.restaurant_id as string),
         )
         for (const r of picks) {
-            if (!allowed.has(r)) {
+            if (!activeIds.has(r) && !existingIds.has(r)) {
                 return {
                     ok: false,
                     error: 'Picked a restaurant not on the ballot.',

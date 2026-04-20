@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { requireAdmin } from '@/lib/auth'
-import { cancelPoll, overridePollWinner } from '@/lib/polls'
+import { cancelPoll, editPollBallot, overridePollWinner } from '@/lib/polls'
 
 export async function cancelPollAction(formData: FormData) {
     const admin = await requireAdmin()
@@ -37,6 +37,34 @@ export async function overridePollAction(formData: FormData) {
         throw new Error(result.error)
     }
 
+    revalidatePath('/admin/polls')
+    revalidatePath(`/polls/${pollId}`)
+    revalidatePath('/')
+}
+
+export async function editBallotAction(formData: FormData) {
+    const admin = await requireAdmin()
+    const pollId = String(formData.get('poll_id') ?? '')
+    const added = formData
+        .getAll('added')
+        .map(String)
+        .filter(Boolean)
+    const removed = formData
+        .getAll('removed')
+        .map(String)
+        .filter(Boolean)
+
+    if (!pollId) throw new Error('Missing poll_id.')
+
+    const result = await editPollBallot({
+        adminUserId: admin.id,
+        pollId,
+        added,
+        removed,
+    })
+    if (result.status === 'error') {
+        throw new Error(result.error)
+    }
     revalidatePath('/admin/polls')
     revalidatePath(`/polls/${pollId}`)
     revalidatePath('/')

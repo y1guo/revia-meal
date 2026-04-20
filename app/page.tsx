@@ -111,7 +111,9 @@ function subtitle(
         case 'cancelled':
             return poll.cancellation_reason === 'admin'
                 ? 'Cancelled by admin'
-                : 'Cancelled (no votes)'
+                : poll.cancellation_reason === 'no_available_restaurants'
+                  ? 'Cancelled (no restaurants available)'
+                  : 'Cancelled (no votes)'
     }
 }
 

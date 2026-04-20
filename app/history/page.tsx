@@ -267,7 +267,10 @@ export default async function HistoryPage({
                                                     {p.cancellation_reason ===
                                                     'no_votes'
                                                         ? 'no votes'
-                                                        : 'cancelled by admin'}
+                                                        : p.cancellation_reason ===
+                                                            'no_available_restaurants'
+                                                          ? 'no available restaurants'
+                                                          : 'cancelled by admin'}
                                                 </>
                                             )}
                                         </div>

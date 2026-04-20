@@ -43,6 +43,7 @@ type Restaurant = {
     name: string
     doordash_url: string | null
     notes: string | null
+    disabled: boolean
 }
 
 type ClosedTally = {
@@ -127,7 +128,10 @@ export default async function PollPage({ params }: { params: Params }) {
             .select('id, name, description')
             .eq('id', poll.template_id)
             .maybeSingle(),
-        admin.from('poll_options').select('restaurant_id').eq('poll_id', id),
+        admin
+            .from('poll_options')
+            .select('restaurant_id, disabled_at')
+            .eq('poll_id', id),
         admin
             .from('votes')
             .select('restaurant_id')
@@ -142,15 +146,41 @@ export default async function PollPage({ params }: { params: Params }) {
     ])
 
     const template = templateRes.data
-    const restaurantIds = (optionsRes.data ?? []).map((o) => o.restaurant_id)
+    const optionRows = (optionsRes.data ?? []) as {
+        restaurant_id: string
+        disabled_at: string | null
+    }[]
+    const disabledByRestaurant = new Map(
+        optionRows.map((o) => [o.restaurant_id, o.disabled_at !== null]),
+    )
+    const restaurantIds = optionRows.map((o) => o.restaurant_id)
     const { data: rData } =
         restaurantIds.length > 0
             ? await admin
                   .from('restaurants')
                   .select('id, name, doordash_url, notes')
                   .in('id', restaurantIds)
-            : { data: [] as Restaurant[] }
-    const restaurants = (rData ?? []) as Restaurant[]
+            : {
+                  data: [] as {
+                      id: string
+                      name: string
+                      doordash_url: string | null
+                      notes: string | null
+                  }[],
+              }
+    const restaurants: Restaurant[] = (rData ?? [])
+        .map((r) => ({
+            id: r.id as string,
+            name: r.name as string,
+            doordash_url: r.doordash_url as string | null,
+            notes: r.notes as string | null,
+            disabled: disabledByRestaurant.get(r.id as string) ?? false,
+        }))
+        .sort((a, b) => {
+            // Active first, disabled at the bottom, each subgroup alphabetical.
+            if (a.disabled !== b.disabled) return a.disabled ? 1 : -1
+            return a.name.localeCompare(b.name)
+        })
     const initialPicks = (votesRes.data ?? []).map(
         (v) => v.restaurant_id as string,
     )
@@ -352,6 +382,7 @@ export default async function PollPage({ params }: { params: Params }) {
                                 name: r.name,
                                 notes: r.notes,
                                 doordash_url: r.doordash_url,
+                                disabled: r.disabled,
                             }),
                         )}
                         initialPicks={initialPicks}
@@ -703,7 +734,10 @@ function StatusDetails({
                 <p className="text-[0.9375rem] text-[color:var(--status-cancelled-fg)]">
                     {poll.cancellation_reason === 'no_votes'
                         ? 'Cancelled because no one voted.'
-                        : 'Cancelled by an admin.'}
+                        : poll.cancellation_reason ===
+                            'no_available_restaurants'
+                          ? 'Cancelled because no restaurants were available.'
+                          : 'Cancelled by an admin.'}
                 </p>
             )
     }

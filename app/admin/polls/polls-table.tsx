@@ -1,6 +1,6 @@
 'use client'
 
-import { ExternalLink, Shuffle, XCircle } from 'lucide-react'
+import { ExternalLink, ListChecks, Shuffle, XCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable'
@@ -12,6 +12,7 @@ import {
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import type { PollStatus } from '@/lib/polls'
 import { cancelPollAction } from './actions'
+import { EditBallotModal } from './edit-ballot-modal'
 import { OverrideWinnerModal } from './override-winner-modal'
 
 export type PollTableRow = {
@@ -22,19 +23,34 @@ export type PollTableRow = {
     voters: number
     winnerId: string | null
     winnerName: string | null
-    cancelledReason: 'admin' | 'no_votes' | null
+    cancelledReason: 'admin' | 'no_votes' | 'no_available_restaurants' | null
     cancelledByLabel: string | null
     /** Ballot restaurants for closed polls; null otherwise. Used by the
      *  override-winner modal to offer alternatives. */
     ballot: { id: string; name: string }[] | null
+    /** Full ballot (active + disabled) for scheduled/open polls; null
+     *  otherwise. Used by the edit-ballot modal. */
+    editableBallot:
+        | { id: string; name: string; disabled: boolean }[]
+        | null
 }
 
-export function PollsTable({ rows }: { rows: PollTableRow[] }) {
+export type CatalogEntry = { id: string; name: string }
+
+export function PollsTable({
+    rows,
+    catalog,
+}: {
+    rows: PollTableRow[]
+    catalog: CatalogEntry[]
+}) {
     const router = useRouter()
     const [cancelTarget, setCancelTarget] = useState<PollTableRow | null>(null)
     const [overrideTarget, setOverrideTarget] = useState<PollTableRow | null>(
         null,
     )
+    const [editBallotTarget, setEditBallotTarget] =
+        useState<PollTableRow | null>(null)
 
     const handleCancel = async () => {
         if (!cancelTarget) return
@@ -98,9 +114,12 @@ export function PollsTable({ rows }: { rows: PollTableRow[] }) {
                         <span className="text-[0.8125rem] text-[color:var(--status-cancelled-fg)]">
                             {p.cancelledReason === 'no_votes'
                                 ? 'No votes'
-                                : p.cancelledByLabel
-                                  ? `by ${p.cancelledByLabel}`
-                                  : 'by admin'}
+                                : p.cancelledReason ===
+                                    'no_available_restaurants'
+                                  ? 'No available restaurants'
+                                  : p.cancelledByLabel
+                                    ? `by ${p.cancelledByLabel}`
+                                    : 'by admin'}
                         </span>
                     )
                 return <span className="text-[color:var(--text-tertiary)]">—</span>
@@ -133,6 +152,15 @@ export function PollsTable({ rows }: { rows: PollTableRow[] }) {
                         >
                             View poll
                         </RowActionItem>
+                        {(p.status === 'scheduled' || p.status === 'open') &&
+                            p.editableBallot && (
+                                <RowActionItem
+                                    icon={ListChecks}
+                                    onSelect={() => setEditBallotTarget(p)}
+                                >
+                                    Edit ballot…
+                                </RowActionItem>
+                            )}
                         {p.status === 'closed' && p.ballot && p.ballot.length > 1 && (
                             <RowActionItem
                                 icon={Shuffle}
@@ -190,6 +218,24 @@ export function PollsTable({ rows }: { rows: PollTableRow[] }) {
                     ballot={overrideTarget.ballot}
                     onSaved={() => {
                         setOverrideTarget(null)
+                        router.refresh()
+                    }}
+                />
+            )}
+
+            {editBallotTarget && editBallotTarget.editableBallot && (
+                <EditBallotModal
+                    open={editBallotTarget !== null}
+                    onOpenChange={(o) => {
+                        if (!o) setEditBallotTarget(null)
+                    }}
+                    pollId={editBallotTarget.id}
+                    templateName={editBallotTarget.templateName}
+                    dateLabel={editBallotTarget.dateLabel}
+                    currentBallot={editBallotTarget.editableBallot}
+                    catalog={catalog}
+                    onSaved={() => {
+                        setEditBallotTarget(null)
                         router.refresh()
                     }}
                 />

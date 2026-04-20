@@ -67,9 +67,18 @@ export async function GET(
             .select('id, name, description')
             .eq('id', poll.template_id)
             .maybeSingle(),
-        admin.from('poll_options').select('restaurant_id').eq('poll_id', id),
+        admin
+            .from('poll_options')
+            .select('restaurant_id, disabled_at')
+            .eq('poll_id', id),
     ])
 
+    const disabledByRestaurant = new Map(
+        (optionsRes.data ?? []).map((o) => [
+            o.restaurant_id as string,
+            o.disabled_at !== null,
+        ]),
+    )
     const ballotIds = (optionsRes.data ?? []).map(
         (o) => o.restaurant_id as string,
     )
@@ -85,6 +94,7 @@ export async function GET(
         name: r.name as string,
         doordash_url: r.doordash_url as string | null,
         notes: r.notes as string | null,
+        disabled: disabledByRestaurant.get(r.id as string) ?? false,
     }))
 
     // Tallies and voter breakdown are only returned once the poll is

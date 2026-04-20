@@ -281,9 +281,17 @@ export async function getTodaysDashboard(): Promise<DashboardEntry[]> {
     return entries
 }
 
+export type CancellationReason =
+    | 'no_votes'
+    | 'no_available_restaurants'
+    | 'admin'
+
 export type FinalizeResult =
     | { status: 'noop' }
-    | { status: 'cancelled'; reason: 'no_votes' }
+    | {
+          status: 'cancelled'
+          reason: 'no_votes' | 'no_available_restaurants'
+      }
     | { status: 'finalized'; winnerId: string }
 
 /**
@@ -315,9 +323,12 @@ export async function finalizePoll(pollId: string): Promise<FinalizeResult> {
 
     const { data: ballot } = await admin
         .from('poll_options')
-        .select('restaurant_id')
+        .select('restaurant_id, disabled_at')
         .eq('poll_id', pollId)
     const ballotIds = (ballot ?? []).map((o) => o.restaurant_id as string)
+    const activeBallotIds = (ballot ?? [])
+        .filter((o) => o.disabled_at === null)
+        .map((o) => o.restaurant_id as string)
 
     const { data: todayVotes } = await admin
         .from('votes')
@@ -335,6 +346,19 @@ export async function finalizePoll(pollId: string): Promise<FinalizeResult> {
             .is('finalized_at', null)
             .is('cancelled_at', null)
         return { status: 'cancelled', reason: 'no_votes' }
+    }
+
+    if (activeBallotIds.length === 0) {
+        await admin
+            .from('polls')
+            .update({
+                cancelled_at: new Date().toISOString(),
+                cancellation_reason: 'no_available_restaurants',
+            })
+            .eq('id', pollId)
+            .is('finalized_at', null)
+            .is('cancelled_at', null)
+        return { status: 'cancelled', reason: 'no_available_restaurants' }
     }
 
     // Group today's votes: restaurant_id -> Map<user_id, weight>
@@ -428,9 +452,12 @@ export async function finalizePoll(pollId: string): Promise<FinalizeResult> {
         { onConflict: 'poll_id,restaurant_id', ignoreDuplicates: true },
     )
 
-    // Pick winner with random tiebreak.
-    const maxTally = Math.max(...tallies.map((t) => t.total_tally))
-    const ties = tallies.filter((t) => t.total_tally === maxTally)
+    // Pick winner from active options only. Disabled options stay in the
+    // tally snapshot (poll_results) for historical honesty but can't win.
+    const activeSet = new Set(activeBallotIds)
+    const activeTallies = tallies.filter((t) => activeSet.has(t.restaurant_id))
+    const maxTally = Math.max(...activeTallies.map((t) => t.total_tally))
+    const ties = activeTallies.filter((t) => t.total_tally === maxTally)
     const winner = ties[Math.floor(Math.random() * ties.length)]
 
     // Atomically claim the finalization. Whoever wins this UPDATE owns
@@ -634,4 +661,133 @@ export async function overridePollWinner(args: {
     })
 
     return { status: 'ok' }
+}
+
+export type BallotEditResult =
+    | { status: 'ok'; added: number; removed: number }
+    | { status: 'noop' }
+    | { status: 'error'; error: string }
+
+/**
+ * Admin-edit the ballot of a scheduled or open poll. Removals are
+ * soft-deletes via poll_options.disabled_at: the row stays so voters who
+ * already picked the restaurant keep the reference, but the option is
+ * excluded from winner selection and from new votes. Additions upsert with
+ * disabled_at=null, which also re-enables previously-disabled entries.
+ *
+ * Rejects on finalized or cancelled polls and on a payload that would
+ * leave zero active options (cancel the poll instead).
+ */
+export async function editPollBallot(args: {
+    adminUserId: string
+    pollId: string
+    added: string[]
+    removed: string[]
+}): Promise<BallotEditResult> {
+    const { pollId, added: rawAdded, removed: rawRemoved } = args
+    const admin = createAdminClient()
+
+    const addedSet = new Set(rawAdded.filter(Boolean))
+    const removedSet = new Set(rawRemoved.filter(Boolean))
+    // Ids in both lists are a no-op for that id.
+    for (const id of Array.from(addedSet)) {
+        if (removedSet.has(id)) {
+            addedSet.delete(id)
+            removedSet.delete(id)
+        }
+    }
+    const added = Array.from(addedSet)
+    const removed = Array.from(removedSet)
+    if (added.length === 0 && removed.length === 0) {
+        return { status: 'noop' }
+    }
+
+    const { data: poll } = await admin
+        .from('polls')
+        .select('id, opens_at, closes_at, finalized_at, cancelled_at')
+        .eq('id', pollId)
+        .maybeSingle()
+    if (!poll) return { status: 'error', error: 'Poll not found.' }
+    const status = getPollStatus(poll)
+    if (status !== 'scheduled' && status !== 'open') {
+        return {
+            status: 'error',
+            error: 'Ballot can only be edited on scheduled or open polls.',
+        }
+    }
+
+    const uniqueIds = Array.from(new Set([...added, ...removed]))
+    const { data: catalogRows } = await admin
+        .from('restaurants')
+        .select('id, is_active')
+        .in('id', uniqueIds)
+    const catalogById = new Map(
+        (catalogRows ?? []).map((r) => [
+            r.id as string,
+            Boolean(r.is_active),
+        ]),
+    )
+    for (const id of uniqueIds) {
+        if (!catalogById.has(id)) {
+            return { status: 'error', error: `Unknown restaurant: ${id}.` }
+        }
+        if (!catalogById.get(id)) {
+            return {
+                status: 'error',
+                error: 'Inactive restaurants cannot be added to a ballot.',
+            }
+        }
+    }
+
+    const { data: current } = await admin
+        .from('poll_options')
+        .select('restaurant_id, disabled_at')
+        .eq('poll_id', pollId)
+    const activeIds = new Set(
+        (current ?? [])
+            .filter((o) => o.disabled_at === null)
+            .map((o) => o.restaurant_id as string),
+    )
+    const addedSetAfter = new Set(activeIds)
+    for (const id of added) addedSetAfter.add(id)
+    for (const id of removed) addedSetAfter.delete(id)
+    if (addedSetAfter.size === 0) {
+        return {
+            status: 'error',
+            error: "Can't disable the entire ballot. Cancel the poll instead.",
+        }
+    }
+
+    if (added.length > 0) {
+        const { error: addErr } = await admin.from('poll_options').upsert(
+            added.map((restaurantId) => ({
+                poll_id: pollId,
+                restaurant_id: restaurantId,
+                disabled_at: null,
+            })),
+            { onConflict: 'poll_id,restaurant_id' },
+        )
+        if (addErr) {
+            return {
+                status: 'error',
+                error: `Failed to add restaurants: ${addErr.message}`,
+            }
+        }
+    }
+
+    if (removed.length > 0) {
+        const { error: remErr } = await admin
+            .from('poll_options')
+            .update({ disabled_at: new Date().toISOString() })
+            .eq('poll_id', pollId)
+            .in('restaurant_id', removed)
+        if (remErr) {
+            return {
+                status: 'error',
+                error: `Failed to remove restaurants: ${remErr.message}`,
+            }
+        }
+    }
+
+    return { status: 'ok', added: added.length, removed: removed.length }
 }

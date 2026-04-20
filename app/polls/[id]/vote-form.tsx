@@ -14,6 +14,7 @@ export type Ballot = {
     name: string
     notes: string | null
     doordash_url: string | null
+    disabled: boolean
 }
 
 type Status = 'blank' | 'saving' | 'saved' | 'error'
@@ -137,7 +138,9 @@ export default function VoteForm({
         }, DEBOUNCE_MS)
     }
 
-    function togglePick(restaurantId: string, next: boolean) {
+    function togglePick(restaurantId: string, next: boolean, disabled: boolean) {
+        // Disabled options can only be unvoted, never re-checked.
+        if (next && disabled) return
         const nextSet = new Set(picksRef.current)
         if (next) nextSet.add(restaurantId)
         else nextSet.delete(restaurantId)
@@ -206,29 +209,54 @@ export default function VoteForm({
                     {ballot.map((r) => {
                         const banked = bankedByRestaurant[r.id] ?? 0
                         const isChecked = picks.has(r.id)
+                        // When the option is disabled and the user doesn't
+                        // currently have it picked, the checkbox is fully
+                        // uninteractable. When they do have it picked, the
+                        // checkbox stays clickable so they can unvote; once
+                        // unchecked, the next render will see isChecked=false
+                        // and lock it down.
+                        const uninteractable = r.disabled && !isChecked
                         return (
                             <li key={r.id}>
                                 <label
                                     className={cn(
                                         'flex items-start gap-3',
                                         'px-4 py-3 md:px-5 md:py-4',
-                                        'cursor-pointer',
-                                        'hover:bg-[color:var(--surface-sunken)]',
                                         'transition-colors duration-150',
+                                        uninteractable
+                                            ? 'bg-[color:var(--surface-sunken)] cursor-not-allowed'
+                                            : 'cursor-pointer hover:bg-[color:var(--surface-sunken)]',
                                     )}
                                 >
                                     <Checkbox
                                         checked={isChecked}
+                                        disabled={uninteractable}
                                         className="mt-0.5"
                                         onCheckedChange={(next) => {
-                                            togglePick(r.id, next === true)
+                                            togglePick(
+                                                r.id,
+                                                next === true,
+                                                r.disabled,
+                                            )
                                         }}
                                     />
                                     <div className="min-w-0 flex-1 space-y-1">
                                         <div className="flex flex-wrap items-center gap-2">
-                                            <span className="font-medium text-[color:var(--text-primary)]">
+                                            <span
+                                                className={cn(
+                                                    'font-medium',
+                                                    r.disabled
+                                                        ? 'text-[color:var(--text-tertiary)]'
+                                                        : 'text-[color:var(--text-primary)]',
+                                                )}
+                                            >
                                                 {r.name}
                                             </span>
+                                            {r.disabled && (
+                                                <span className="inline-flex items-center rounded-[var(--radius-pill)] px-2 py-0.5 text-[0.6875rem] font-medium uppercase tracking-wide bg-[color:var(--surface-raised)] text-[color:var(--text-secondary)] border border-[color:var(--border-subtle)]">
+                                                    Removed
+                                                </span>
+                                            )}
                                             {banked > 0 && (
                                                 <BankedCreditChip
                                                     weight={banked}
@@ -241,13 +269,25 @@ export default function VoteForm({
                                                 href={r.doordash_url}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                className="inline-block text-[0.8125rem] font-medium text-[color:var(--link-fg)] hover:text-[color:var(--accent-brand)] transition-colors duration-150"
+                                                className={cn(
+                                                    'inline-block text-[0.8125rem] font-medium transition-colors duration-150',
+                                                    r.disabled
+                                                        ? 'text-[color:var(--text-tertiary)]'
+                                                        : 'text-[color:var(--link-fg)] hover:text-[color:var(--accent-brand)]',
+                                                )}
                                             >
                                                 DoorDash ↗
                                             </a>
                                         )}
                                         {r.notes && (
-                                            <p className="text-[0.8125rem] text-[color:var(--text-secondary)]">
+                                            <p
+                                                className={cn(
+                                                    'text-[0.8125rem]',
+                                                    r.disabled
+                                                        ? 'text-[color:var(--text-tertiary)]'
+                                                        : 'text-[color:var(--text-secondary)]',
+                                                )}
+                                            >
                                                 {r.notes}
                                             </p>
                                         )}
