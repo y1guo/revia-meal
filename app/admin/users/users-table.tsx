@@ -49,6 +49,25 @@ export function UsersTable({
         active: boolean
     }>({ open: false, active: false })
 
+    // When the rows prop changes (pagination, search, filter) drop selected
+    // ids that are no longer visible so bulk actions and counts reflect what
+    // the user can actually see.
+    const rowIdsKey = rows.map((r) => r.id).join('|')
+    const [lastIdsKey, setLastIdsKey] = useState(rowIdsKey)
+    if (rowIdsKey !== lastIdsKey) {
+        setLastIdsKey(rowIdsKey)
+        const visible = new Set(rows.map((r) => r.id))
+        setSelected((prev) => {
+            let changed = false
+            const next = new Set<string>()
+            for (const id of prev) {
+                if (visible.has(id)) next.add(id)
+                else changed = true
+            }
+            return changed ? next : prev
+        })
+    }
+
     const selectedIds = Array.from(selected)
     const selectedRows = rows.filter((r) => selected.has(r.id))
     const clearSelection = () => setSelected(new Set())

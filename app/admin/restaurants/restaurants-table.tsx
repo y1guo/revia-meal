@@ -7,7 +7,6 @@ import {
     Store,
     UtensilsCrossed,
 } from 'lucide-react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/Button'
@@ -44,6 +43,23 @@ export function RestaurantsTable({ rows, leading, trailing }: Props) {
         open: boolean
         active: boolean
     }>({ open: false, active: false })
+
+    // Drop selected ids that fall off this page after pagination/search.
+    const rowIdsKey = rows.map((r) => r.id).join('|')
+    const [lastIdsKey, setLastIdsKey] = useState(rowIdsKey)
+    if (rowIdsKey !== lastIdsKey) {
+        setLastIdsKey(rowIdsKey)
+        const visible = new Set(rows.map((r) => r.id))
+        setSelected((prev) => {
+            let changed = false
+            const next = new Set<string>()
+            for (const id of prev) {
+                if (visible.has(id)) next.add(id)
+                else changed = true
+            }
+            return changed ? next : prev
+        })
+    }
 
     const selectedIds = Array.from(selected)
     const selectedRows = rows.filter((r) => selected.has(r.id))
@@ -200,13 +216,13 @@ export function RestaurantsTable({ rows, leading, trailing }: Props) {
                 }
                 rowActions={(r) => (
                     <RowActionsMenu label={`Actions for ${r.name}`}>
-                        <RowActionItem icon={Pencil}>
-                            <Link
-                                href={`/admin/restaurants/${r.id}`}
-                                className="w-full"
-                            >
-                                Edit
-                            </Link>
+                        <RowActionItem
+                            icon={Pencil}
+                            onSelect={() =>
+                                router.push(`/admin/restaurants/${r.id}`)
+                            }
+                        >
+                            Edit
                         </RowActionItem>
                         <RowActionItem
                             icon={r.is_active ? Store : ShieldCheck}

@@ -74,8 +74,12 @@ export default async function UserDetailPage({
                 title={user.display_name || user.email}
                 subtitle={
                     <span className="flex flex-wrap items-center gap-2">
-                        <span>{user.email}</span>
-                        <span className="text-[color:var(--text-tertiary)]">·</span>
+                        {user.display_name && <span>{user.email}</span>}
+                        {user.display_name && (
+                            <span className="text-[color:var(--text-tertiary)]">
+                                ·
+                            </span>
+                        )}
                         <span>Added {addedLabel}</span>
                         {isSelf && <Chip variant="neutral">you</Chip>}
                     </span>
@@ -99,7 +103,7 @@ export default async function UserDetailPage({
                         {user.is_active ? (
                             <Chip variant="success">Active</Chip>
                         ) : (
-                            <Chip variant="danger">Inactive</Chip>
+                            <Chip variant="neutral">Inactive</Chip>
                         )}
                     </div>
                 </Card>

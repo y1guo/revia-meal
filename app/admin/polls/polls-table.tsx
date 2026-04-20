@@ -1,7 +1,6 @@
 'use client'
 
 import { ExternalLink, XCircle } from 'lucide-react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable'
@@ -48,6 +47,11 @@ export function PollsTable({ rows }: { rows: PollTableRow[] }) {
                     </div>
                     <div className="text-[0.75rem] text-[color:var(--text-secondary)] truncate tabular-nums">
                         {p.dateLabel}
+                        <span className="md:hidden">
+                            {' · '}
+                            {p.voters}{' '}
+                            {p.voters === 1 ? 'voter' : 'voters'}
+                        </span>
                     </div>
                 </div>
             ),
@@ -115,8 +119,11 @@ export function PollsTable({ rows }: { rows: PollTableRow[] }) {
                 }
                 rowActions={(p) => (
                     <RowActionsMenu label={`Actions for ${p.templateName}`}>
-                        <RowActionItem icon={ExternalLink}>
-                            <Link href={`/polls/${p.id}`}>View poll</Link>
+                        <RowActionItem
+                            icon={ExternalLink}
+                            onSelect={() => router.push(`/polls/${p.id}`)}
+                        >
+                            View poll
                         </RowActionItem>
                         {p.status !== 'cancelled' && (
                             <RowActionItem

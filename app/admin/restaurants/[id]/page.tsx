@@ -1,9 +1,7 @@
-import { UtensilsCrossed } from 'lucide-react'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { BackLink } from '@/components/ui/BackLink'
-import { Card } from '@/components/ui/Card'
 import { Chip } from '@/components/ui/Chip'
 import { requireAdmin } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -60,28 +58,7 @@ export default async function RestaurantDetailPage({
                 }
             />
 
-            <div className="space-y-6">
-                <Card className="flex items-center gap-4">
-                    <span
-                        className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[color:var(--surface-sunken)] text-[color:var(--text-secondary)]"
-                        aria-hidden="true"
-                    >
-                        <UtensilsCrossed size={20} strokeWidth={1.75} />
-                    </span>
-                    <div className="min-w-0">
-                        <div className="font-medium text-[color:var(--text-primary)] truncate">
-                            {r.name}
-                        </div>
-                        {r.notes && (
-                            <div className="text-[0.8125rem] text-[color:var(--text-secondary)] truncate">
-                                {r.notes}
-                            </div>
-                        )}
-                    </div>
-                </Card>
-
-                <RestaurantEditForm restaurant={r} />
-            </div>
+            <RestaurantEditForm restaurant={r} />
         </>
     )
 }
