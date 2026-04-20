@@ -44,6 +44,7 @@ Automates the daily lunch-order workflow for the HeyRevia US office: collect vot
 See [docs/](docs/) for the full design spec.
 
 - [Architecture](docs/architecture.md)
+- [Deployment and release](docs/deployment.md) — stand up a new environment, apply migrations, ship a release
 - [Data model](docs/data-model.md)
 - [Features and pages](docs/features.md)
 - [Polls, voting, and rolling credits](docs/polls.md)
@@ -65,6 +66,14 @@ Prereqs: Node.js 20+ and pnpm 10+. Scaffold was created with `create-next-app` o
 7. (Optional) `npx skills experimental_install` — restores the agent skills pinned in [skills-lock.json](skills-lock.json) into `.claude/` and `.agents/` for Claude Code / other AI assistants. Not required to run the app.
 
 Sign in at `/login` with the Google account matching `INITIAL_ADMIN_EMAIL` to get admin access; from there you can provision other users in `/admin/users`.
+
+### Applying new migrations
+
+When a new file shows up in [db/migrations/](db/migrations/) on `main`, paste its contents into the Supabase SQL editor and run. The full procedure (and what to do for production) is in [docs/deployment.md § Applying new schema migrations](docs/deployment.md#applying-new-schema-migrations).
+
+## Deploying and releasing
+
+See [docs/deployment.md](docs/deployment.md) for standing up a new Supabase + Vercel environment from scratch and for the day-to-day release flow.
 
 ## License
 
