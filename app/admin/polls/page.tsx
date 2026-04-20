@@ -1,19 +1,20 @@
 import { FilterX } from 'lucide-react'
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { DateRangeField } from '@/components/ui/DateRangeField'
-import { EmptyState } from '@/components/ui/EmptyState'
 import { LinkButton } from '@/components/ui/LinkButton'
 import { NativeSelect } from '@/components/ui/NativeSelect'
-import { StatusBadge } from '@/components/ui/StatusBadge'
+import { Pagination } from '@/components/ui/Pagination'
+import { TableCount } from '@/components/ui/TableToolbar'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPollStatus } from '@/lib/polls'
-import CancelButton from './cancel-button'
+import { PollsTable, type PollTableRow } from './polls-table'
 
 export const metadata: Metadata = { title: 'Polls · Admin' }
+
+const PAGE_SIZE = 20
 
 type SearchParams = Promise<{
     template?: string
@@ -22,6 +23,7 @@ type SearchParams = Promise<{
     status?: string
     winner?: string
     participant?: string
+    page?: string
 }>
 
 function defaultRange(): { from: string; to: string } {
@@ -47,6 +49,7 @@ export default async function AdminPollsPage({
     const statusFilter = params.status || ''
     const winnerFilter = params.winner || ''
     const participantFilter = params.participant || ''
+    const page = Math.max(1, Number(params.page) || 1)
 
     const admin = createAdminClient()
 
@@ -93,11 +96,19 @@ export default async function AdminPollsPage({
     const { data: pollsData } = await pollsQuery
     const allPolls = pollsData ?? []
 
-    const polls = statusFilter
+    // Status filter is derived from timestamps, so it has to happen after the
+    // fetch. Page-size is applied after this — total count reflects the
+    // filtered set, not the raw fetch.
+    const filteredPolls = statusFilter
         ? allPolls.filter((p) => getPollStatus(p) === statusFilter)
         : allPolls
+    const total = filteredPolls.length
+    const pagePolls = filteredPolls.slice(
+        (page - 1) * PAGE_SIZE,
+        page * PAGE_SIZE,
+    )
 
-    const pollIds = polls.map((p) => p.id as string)
+    const pollIds = pagePolls.map((p) => p.id as string)
     const { data: voteRows } =
         pollIds.length > 0
             ? await admin
@@ -133,6 +144,32 @@ export default async function AdminPollsPage({
             },
         ]),
     )
+
+    const rows: PollTableRow[] = pagePolls.map((p) => {
+        const status = getPollStatus(p)
+        const templateName =
+            templateMap.get(p.template_id as string) ?? '(removed template)'
+        const winnerName = p.winner_id
+            ? (restaurantMap.get(p.winner_id as string) ?? '(removed)')
+            : null
+        const cancelledBy = p.cancelled_by
+            ? (userMap.get(p.cancelled_by as string) ?? null)
+            : null
+        const dateLabel = formatDate(p.scheduled_date as string)
+        return {
+            id: p.id as string,
+            templateName,
+            dateLabel,
+            status,
+            voters: voterCountByPoll.get(p.id as string) ?? 0,
+            winnerName,
+            cancelledReason:
+                (p.cancellation_reason as 'admin' | 'no_votes' | null) ?? null,
+            cancelledByLabel: cancelledBy
+                ? cancelledBy.display_name || cancelledBy.email
+                : null,
+        }
+    })
 
     return (
         <>
@@ -219,85 +256,17 @@ export default async function AdminPollsPage({
                 </form>
             </Card>
 
-            {polls.length === 0 ? (
-                <EmptyState
-                    icon={FilterX}
-                    title="No polls match these filters."
-                    body="Widen the date range or clear filters to see more."
-                />
-            ) : (
-                <ul className="space-y-3">
-                    {polls.map((p) => {
-                        const status = getPollStatus(p)
-                        const templateName =
-                            templateMap.get(p.template_id as string) ??
-                            '(removed template)'
-                        const winnerName = p.winner_id
-                            ? restaurantMap.get(p.winner_id as string) ??
-                              '(removed)'
-                            : null
-                        const cancelledBy = p.cancelled_by
-                            ? userMap.get(p.cancelled_by as string)
-                            : null
-                        const voters =
-                            voterCountByPoll.get(p.id as string) ?? 0
-                        const dateLabel = formatDate(
-                            p.scheduled_date as string,
-                        )
-                        return (
-                            <li key={p.id as string}>
-                                <Card className="flex flex-wrap items-center gap-3">
-                                    <div className="flex-1 min-w-[200px] space-y-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <Link
-                                                href={`/polls/${p.id}`}
-                                                className="font-medium text-[color:var(--text-primary)] hover:text-[color:var(--accent-brand)] transition-colors duration-150 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent-brand)]"
-                                            >
-                                                {templateName}
-                                            </Link>
-                                            <span className="text-[0.8125rem] text-[color:var(--text-secondary)] tabular-nums">
-                                                {dateLabel}
-                                            </span>
-                                            <StatusBadge status={status} />
-                                        </div>
-                                        <div className="text-[0.8125rem] text-[color:var(--text-secondary)]">
-                                            {voters}{' '}
-                                            {voters === 1 ? 'voter' : 'voters'}
-                                            {winnerName &&
-                                                status === 'closed' && (
-                                                    <>
-                                                        {' '}· winner:{' '}
-                                                        <strong className="text-[color:var(--text-primary)]">
-                                                            {winnerName}
-                                                        </strong>
-                                                    </>
-                                                )}
-                                            {status === 'cancelled' && (
-                                                <>
-                                                    {' '}·{' '}
-                                                    {p.cancellation_reason ===
-                                                    'no_votes'
-                                                        ? 'no votes'
-                                                        : cancelledBy
-                                                          ? `by ${cancelledBy.display_name || cancelledBy.email}`
-                                                          : 'by admin'}
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {status !== 'cancelled' && (
-                                        <CancelButton
-                                            pollId={p.id as string}
-                                            label={`${templateName} — ${dateLabel}`}
-                                            isClosed={status === 'closed'}
-                                        />
-                                    )}
-                                </Card>
-                            </li>
-                        )
-                    })}
-                </ul>
-            )}
+            <div className="space-y-4">
+                <div className="flex items-center justify-end">
+                    <TableCount
+                        showing={rows.length}
+                        total={total}
+                        noun="poll"
+                    />
+                </div>
+                <PollsTable rows={rows} />
+                <Pagination page={page} total={total} pageSize={PAGE_SIZE} />
+            </div>
         </>
     )
 }
