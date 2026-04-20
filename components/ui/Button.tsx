@@ -44,6 +44,31 @@ const ICON_SIZE: Record<ButtonSize, number> = {
     lg: 18,
 }
 
+export function buttonClasses({
+    variant = 'secondary',
+    size = 'md',
+    className,
+}: {
+    variant?: ButtonVariant
+    size?: ButtonSize
+    className?: string
+} = {}): string {
+    return cn(
+        'inline-flex items-center justify-center',
+        'rounded-[var(--radius-md)] font-medium leading-none whitespace-nowrap',
+        'transition-colors duration-150',
+        'disabled:opacity-50 disabled:cursor-not-allowed',
+        'active:translate-y-px motion-reduce:active:translate-y-0',
+        VARIANT[variant],
+        SIZE[size],
+        className,
+    )
+}
+
+export function buttonIconSize(size: ButtonSize = 'md'): number {
+    return ICON_SIZE[size]
+}
+
 export function Button({
     variant = 'secondary',
     size = 'md',
@@ -66,16 +91,7 @@ export function Button({
             type={type}
             disabled={isDisabled}
             aria-busy={loading || undefined}
-            className={cn(
-                'inline-flex items-center justify-center',
-                'rounded-[var(--radius-md)] font-medium leading-none whitespace-nowrap',
-                'transition-colors duration-150',
-                'disabled:opacity-50 disabled:cursor-not-allowed',
-                'active:translate-y-px motion-reduce:active:translate-y-0',
-                VARIANT[variant],
-                SIZE[size],
-                className,
-            )}
+            className={buttonClasses({ variant, size, className })}
         >
             {loading ? (
                 <Loader2
