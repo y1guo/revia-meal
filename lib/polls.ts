@@ -144,18 +144,47 @@ export async function ensureTodaysPoll(
         return raced?.id ?? null
     }
 
-    // Snapshot the ballot from currently-active template_restaurants.
+    // Snapshot the ballot from currently-active template_restaurants,
+    // filtered by each restaurant's weekly open-hours config for today's
+    // day-of-week in the template's timezone.
     const { data: trs } = await admin
         .from('template_restaurants')
         .select('restaurant_id')
         .eq('template_id', template.id)
         .eq('is_active', true)
 
-    if (trs && trs.length > 0) {
+    const candidateIds = (trs ?? []).map((tr) => tr.restaurant_id as string)
+    let openIds = candidateIds
+    if (candidateIds.length > 0) {
+        const { data: hoursRows } = await admin
+            .from('restaurant_hours')
+            .select('restaurant_id, day_of_week')
+            .in('restaurant_id', candidateIds)
+
+        const openDaysByRestaurant = new Map<string, Set<number>>()
+        for (const h of hoursRows ?? []) {
+            const rid = h.restaurant_id as string
+            if (!openDaysByRestaurant.has(rid)) {
+                openDaysByRestaurant.set(rid, new Set())
+            }
+            openDaysByRestaurant.get(rid)!.add(h.day_of_week as number)
+        }
+
+        const todayDow = getDayOfWeekISO(timezone)
+        openIds = candidateIds.filter((rid) => {
+            const openDays = openDaysByRestaurant.get(rid)
+            // Restaurants with no hours rows are "unconfigured" and
+            // default to open every day.
+            if (!openDays) return true
+            return openDays.has(todayDow)
+        })
+    }
+
+    if (openIds.length > 0) {
         await admin.from('poll_options').insert(
-            trs.map((tr) => ({
+            openIds.map((restaurantId) => ({
                 poll_id: newPoll.id,
-                restaurant_id: tr.restaurant_id,
+                restaurant_id: restaurantId,
             })),
         )
     }

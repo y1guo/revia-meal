@@ -6,6 +6,7 @@ import { Chip } from '@/components/ui/Chip'
 import { requireAdmin } from '@/lib/auth'
 import { formatDate } from '@/lib/format-time'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { HoursEditor, type DayHours } from './hours-editor'
 import { RestaurantEditForm } from './restaurant-edit-form'
 
 type Params = Promise<{ id: string }>
@@ -20,11 +21,17 @@ export default async function RestaurantDetailPage({
     await requireAdmin()
     const { id } = await params
     const supabase = createAdminClient()
-    const { data } = await supabase
-        .from('restaurants')
-        .select('id, name, doordash_url, notes, is_active, created_at')
-        .eq('id', id)
-        .maybeSingle()
+    const [{ data }, { data: hoursData }] = await Promise.all([
+        supabase
+            .from('restaurants')
+            .select('id, name, doordash_url, notes, is_active, created_at')
+            .eq('id', id)
+            .maybeSingle(),
+        supabase
+            .from('restaurant_hours')
+            .select('day_of_week, opens_at, closes_at')
+            .eq('restaurant_id', id),
+    ])
     if (!data) notFound()
 
     const r = data as {
@@ -34,6 +41,33 @@ export default async function RestaurantDetailPage({
         notes: string | null
         is_active: boolean
         created_at: string
+    }
+
+    // Postgres `time` values serialize as "HH:MM:SS"; the <input type="time">
+    // expects "HH:MM". Normalize here so the editor's state round-trips.
+    const trimSeconds = (t: string | null): string | null =>
+        t ? t.slice(0, 5) : null
+    const byDay = new Map<number, { opens_at: string | null; closes_at: string | null }>(
+        (hoursData ?? []).map((h) => [
+            h.day_of_week as number,
+            {
+                opens_at: trimSeconds(h.opens_at as string | null),
+                closes_at: trimSeconds(h.closes_at as string | null),
+            },
+        ]),
+    )
+    const hasAnyRow = (hoursData ?? []).length > 0
+    const initialHours: DayHours[] = []
+    for (let dow = 1; dow <= 7; dow++) {
+        const row = byDay.get(dow)
+        initialHours.push({
+            day_of_week: dow,
+            // When no rows exist at all, default every day to open ("unconfigured").
+            // Otherwise honor what's in the DB: row present = open, absent = closed.
+            open: hasAnyRow ? row !== undefined : true,
+            opens_at: row?.opens_at ?? null,
+            closes_at: row?.closes_at ?? null,
+        })
     }
 
     const addedLabel = formatDate(r.created_at)
@@ -56,6 +90,14 @@ export default async function RestaurantDetailPage({
             />
 
             <RestaurantEditForm restaurant={r} />
+
+            <div className="mt-6">
+                <HoursEditor
+                    restaurantId={r.id}
+                    initialHours={initialHours}
+                    unconfigured={!hasAnyRow}
+                />
+            </div>
         </>
     )
 }
