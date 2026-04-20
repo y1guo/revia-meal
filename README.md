@@ -27,7 +27,7 @@ Automates the daily lunch-order workflow for the HeyRevia US office: collect vot
 
 - **Next.js 16** (App Router, Server Components). This major has breaking changes from earlier Next — see [AGENTS.md](AGENTS.md).
 - **React 19**, **TypeScript 5**.
-- **Tailwind CSS 4**. No custom design-token layer.
+- **Tailwind CSS 4** with a semantic design-token layer in [app/globals.css](app/globals.css). Brand palette (Boba / Lime / Sunny) is documented in [docs/design/palette-refresh.md](docs/design/palette-refresh.md); components read semantic CSS vars (`--surface-raised`, `--text-primary`, `--accent-brand`) so light/dark swaps are automatic.
 - **Supabase** (Postgres + Auth) via **`@supabase/ssr` 0.10** and **`@supabase/supabase-js` 2**. Storage is not used.
 - **Google OAuth 2.0**, brokered by Supabase Auth. The app never handles Google client credentials directly — see [docs/architecture.md](docs/architecture.md).
 - **Node.js 24**, **pnpm 10**, **tsx** for one-off TypeScript scripts.
@@ -37,7 +37,7 @@ Automates the daily lunch-order workflow for the HeyRevia US office: collect vot
 
 - **Claude Code** — Anthropic's CLI coding agent. Drove most of the implementation. Feature flow documented in [AGENTS.md](AGENTS.md).
 - **Playwright MCP** — browser automation for per-change verification. Not a permanent test suite.
-- **Figma MCP** — integrates the Figma file with the agent for the in-progress design refresh. See [docs/design-brief.md](docs/design-brief.md) and [docs/design/](docs/design/).
+- **Design docs** — [docs/design-brief.md](docs/design-brief.md) is the product-side brief; [docs/design/](docs/design/) holds the implementation specs (tokens, component primitives, per-page layouts, palette refresh).
 
 ## Docs
 
@@ -49,6 +49,8 @@ See [docs/](docs/) for the full design spec.
 - [Polls, voting, and rolling credits](docs/polls.md)
 - [External API](docs/api.md)
 - [Roadmap and open questions](docs/roadmap.md)
+- [Design brief](docs/design-brief.md) — product-side direction and UX invariants
+- [Design specs](docs/design/) — palette refresh, tokens, components, per-page layouts
 
 ## Development setup
 

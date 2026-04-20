@@ -28,3 +28,5 @@ Two invariants worth surfacing here because they bite often:
 - **No native system UI.** `window.confirm()`, unstyled `<select>`, default date pickers, etc. must be replaced with custom components that match the brand. If you're about to reach for a native dialog, build or reuse the project's modal primitive instead.
 
 When in doubt, read the relevant section of the design brief first.
+
+The brand palette is **Boba / Lime / Sunny** — documented in [docs/design/palette-refresh.md](docs/design/palette-refresh.md). Components should read semantic CSS vars (`--surface-raised`, `--text-primary`, `--accent-brand`, `--link-fg`, `--focus-ring`, status/banked tokens) defined in [app/globals.css](app/globals.css) rather than raw palette utilities — that's what makes light/dark swap automatic. Run `pnpm exec tsx scripts/check-contrast.ts` after any palette change; 44/44 pairs must still pass WCAG AA.
