@@ -13,6 +13,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { selectUsersWithAvatar } from '@/lib/users'
 import {
     getPollStatus,
     finalizePoll,
@@ -220,37 +221,12 @@ export default async function PollPage({ params }: { params: Params }) {
         const voterIds = Array.from(
             new Set((allVotesRes.data ?? []).map((v) => v.user_id as string)),
         )
-        let voterRows:
-            | { id: string; display_name: string | null; email: string; avatar_url: string | null }[]
-            | null = null
-        if (voterIds.length > 0) {
-            const res = await admin
-                .from('users')
-                .select('id, display_name, email, avatar_url')
-                .in('id', voterIds)
-            if (res.error && /column.*avatar_url/i.test(res.error.message)) {
-                // Migration 0002 not applied yet — fall back without avatars.
-                const retry = await admin
-                    .from('users')
-                    .select('id, display_name, email')
-                    .in('id', voterIds)
-                voterRows = (retry.data ?? []).map((u) => ({
-                    id: u.id as string,
-                    display_name: u.display_name as string | null,
-                    email: u.email as string,
-                    avatar_url: null,
-                }))
-            } else {
-                voterRows = (res.data ?? []).map((u) => ({
-                    id: u.id as string,
-                    display_name: u.display_name as string | null,
-                    email: u.email as string,
-                    avatar_url: (u.avatar_url as string | null) ?? null,
-                }))
-            }
-        }
+        const voterRes =
+            voterIds.length > 0
+                ? await selectUsersWithAvatar(admin, voterIds)
+                : null
         const userMap = new Map(
-            (voterRows ?? []).map((u) => [
+            (voterRes?.data ?? []).map((u) => [
                 u.id,
                 {
                     display_name: u.display_name,

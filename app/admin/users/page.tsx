@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { PageHeader } from '@/components/shell/PageHeader'
+import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Checkbox } from '@/components/ui/Checkbox'
@@ -14,13 +15,53 @@ import DeleteUserButton from './delete-user-button'
 
 export const metadata: Metadata = { title: 'Users · Admin' }
 
+type UserRow = {
+    id: string
+    email: string
+    display_name: string | null
+    role: 'user' | 'admin'
+    is_active: boolean
+    created_at: string
+    avatar_url: string | null
+}
+
 export default async function UsersPage() {
     const currentAdmin = await requireAdmin()
     const supabase = createAdminClient()
-    const { data: users } = await supabase
+    // Try with avatar_url; fall back if migration 0002 isn't applied yet.
+    const full = await supabase
         .from('users')
-        .select('id, email, display_name, role, is_active, created_at')
+        .select(
+            'id, email, display_name, role, is_active, created_at, avatar_url',
+        )
         .order('created_at', { ascending: true })
+    let users: UserRow[]
+    if (full.error && /column.*avatar_url/i.test(full.error.message)) {
+        const fallback = await supabase
+            .from('users')
+            .select('id, email, display_name, role, is_active, created_at')
+            .order('created_at', { ascending: true })
+        users = (fallback.data ?? []).map((u) => ({
+            id: u.id as string,
+            email: u.email as string,
+            display_name: u.display_name as string | null,
+            role: u.role as 'user' | 'admin',
+            is_active: u.is_active as boolean,
+            created_at: u.created_at as string,
+            avatar_url: null,
+        }))
+    } else {
+        users = (full.data ?? []).map((u) => ({
+            id: u.id as string,
+            email: u.email as string,
+            display_name: u.display_name as string | null,
+            role: u.role as 'user' | 'admin',
+            is_active: u.is_active as boolean,
+            created_at: u.created_at as string,
+            avatar_url:
+                ('avatar_url' in u ? (u.avatar_url as string | null) : null) ?? null,
+        }))
+    }
 
     return (
         <>
@@ -80,43 +121,51 @@ export default async function UsersPage() {
                 </div>
 
                 <ul className="space-y-3">
-                    {users?.map((u) => {
+                    {users.map((u) => {
                         const isSelf = u.id === currentAdmin.id
                         return (
                             <li key={u.id}>
                                 <Card>
                                     <form
                                         action={updateUser}
-                                        className="grid gap-3 md:grid-cols-[2fr_2fr_auto_auto_auto]"
+                                        className="grid gap-3 md:grid-cols-[2fr_2fr_auto_auto_auto] items-start"
                                     >
                                         <input
                                             type="hidden"
                                             name="id"
                                             value={u.id}
                                         />
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium text-[color:var(--text-primary)] truncate">
-                                                    {u.email}
-                                                </span>
-                                                {isSelf && (
-                                                    <Chip variant="neutral">
-                                                        you
-                                                    </Chip>
-                                                )}
-                                            </div>
-                                            <div className="text-[0.75rem] text-[color:var(--text-secondary)]">
-                                                Added{' '}
-                                                {new Date(
-                                                    u.created_at,
-                                                ).toLocaleDateString(
-                                                    undefined,
-                                                    {
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                        year: 'numeric',
-                                                    },
-                                                )}
+                                        <div className="flex items-start gap-3 min-w-0">
+                                            <Avatar
+                                                name={u.display_name}
+                                                email={u.email}
+                                                imageUrl={u.avatar_url}
+                                                size={36}
+                                            />
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-medium text-[color:var(--text-primary)] truncate">
+                                                        {u.email}
+                                                    </span>
+                                                    {isSelf && (
+                                                        <Chip variant="neutral">
+                                                            you
+                                                        </Chip>
+                                                    )}
+                                                </div>
+                                                <div className="text-[0.75rem] text-[color:var(--text-secondary)]">
+                                                    Added{' '}
+                                                    {new Date(
+                                                        u.created_at,
+                                                    ).toLocaleDateString(
+                                                        undefined,
+                                                        {
+                                                            month: 'short',
+                                                            day: 'numeric',
+                                                            year: 'numeric',
+                                                        },
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                         <TextInput

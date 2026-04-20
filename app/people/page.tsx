@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { signOut } from '@/app/actions'
 import { AppShell } from '@/components/shell/AppShell'
 import { PageHeader } from '@/components/shell/PageHeader'
+import { Avatar } from '@/components/ui/Avatar'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { DateRangeField } from '@/components/ui/DateRangeField'
@@ -15,6 +16,7 @@ import { LinkButton } from '@/components/ui/LinkButton'
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { selectUsersWithAvatar } from '@/lib/users'
 
 export const metadata: Metadata = { title: 'People' }
 
@@ -52,16 +54,17 @@ export default async function PeoplePage({
             .select('user_id, restaurant_id, vote_weight, scheduled_date')
             .gte('scheduled_date', from)
             .lte('scheduled_date', to),
-        admin.from('users').select('id, display_name, email'),
+        selectUsersWithAvatar(admin),
         admin.from('restaurants').select('id, name'),
     ])
 
     const userMap = new Map(
         (usersRes.data ?? []).map((u) => [
-            u.id as string,
+            u.id,
             {
-                display_name: u.display_name as string | null,
-                email: u.email as string,
+                display_name: u.display_name,
+                email: u.email,
+                avatar_url: u.avatar_url,
             },
         ]),
     )
@@ -132,6 +135,8 @@ export default async function PeoplePage({
             return {
                 userId: uid,
                 displayName: u.display_name || u.email,
+                email: u.email,
+                avatarUrl: u.avatar_url,
                 isMe: uid === user.id,
                 segments,
                 totalWeight: segments.reduce((s, seg) => s + seg.weight, 0),
@@ -209,17 +214,25 @@ export default async function PeoplePage({
                         {userRows.map((row) => (
                             <div key={row.userId} className="space-y-2">
                                 <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <span className="font-medium text-[color:var(--text-primary)]">
-                                        {row.isMe ? (
-                                            <>
-                                                {row.displayName}{' '}
-                                                <span className="text-[color:var(--text-secondary)] font-normal">
-                                                    (You)
-                                                </span>
-                                            </>
-                                        ) : (
-                                            row.displayName
-                                        )}
+                                    <span className="inline-flex items-center gap-2 font-medium text-[color:var(--text-primary)]">
+                                        <Avatar
+                                            name={row.displayName}
+                                            email={row.email}
+                                            imageUrl={row.avatarUrl}
+                                            size={28}
+                                        />
+                                        <span>
+                                            {row.isMe ? (
+                                                <>
+                                                    {row.displayName}{' '}
+                                                    <span className="text-[color:var(--text-secondary)] font-normal">
+                                                        (You)
+                                                    </span>
+                                                </>
+                                            ) : (
+                                                row.displayName
+                                            )}
+                                        </span>
                                     </span>
                                     <span className="text-[0.8125rem] font-mono tabular-nums text-[color:var(--text-secondary)]">
                                         {row.totalPolls}{' '}
