@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/shell/PageHeader'
 import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { Chip } from '@/components/ui/Chip'
 import { TextInput } from '@/components/ui/TextInput'
 import { cn } from '@/lib/cn'
@@ -207,12 +208,11 @@ export default async function TemplateEditPage({
                             </div>
                         </fieldset>
 
-                        <label className="flex items-center gap-2 text-[0.875rem]">
-                            <input
-                                type="checkbox"
+                        <label className="flex items-center gap-2 text-[0.875rem] cursor-pointer">
+                            <Checkbox
                                 name="is_active"
                                 defaultChecked={template.is_active}
-                                className="h-4 w-4 accent-[color:var(--accent-brand)]"
+                                value="on"
                             />
                             Template is active (will instantiate polls on
                             schedule)
@@ -271,13 +271,11 @@ export default async function TemplateEditPage({
                                                     'opacity-50 cursor-not-allowed',
                                             )}
                                         >
-                                            <input
-                                                type="checkbox"
+                                            <Checkbox
                                                 name="restaurant_ids"
                                                 value={r.id}
                                                 defaultChecked={isCheckedByDefault}
                                                 disabled={dimmed}
-                                                className="h-4 w-4 accent-[color:var(--accent-brand)]"
                                             />
                                             <span className="flex-1 truncate">
                                                 {r.name}

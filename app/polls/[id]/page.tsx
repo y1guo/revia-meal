@@ -358,7 +358,7 @@ function BallotPreview({
                                         href={r.doordash_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-[0.8125rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] underline underline-offset-2"
+                                        className="text-[0.8125rem] font-medium text-[color:var(--link-fg)] hover:text-[color:var(--accent-brand)] transition-colors duration-150"
                                     >
                                         DoorDash ↗
                                     </a>
@@ -453,7 +453,7 @@ function ClosedBreakdown({
                                     href={r.doordash_url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-[0.8125rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] underline underline-offset-2"
+                                    className="text-[0.8125rem] font-medium text-[color:var(--link-fg)] hover:text-[color:var(--accent-brand)] transition-colors duration-150"
                                 >
                                     DoorDash ↗
                                 </a>

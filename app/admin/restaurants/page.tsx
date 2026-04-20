@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { Chip } from '@/components/ui/Chip'
 import { TextInput } from '@/components/ui/TextInput'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -85,12 +86,11 @@ export default async function RestaurantsPage() {
                                         placeholder="Notes"
                                         size="sm"
                                     />
-                                    <label className="inline-flex items-center gap-1.5 text-[0.8125rem]">
-                                        <input
-                                            type="checkbox"
+                                    <label className="inline-flex items-center gap-2 text-[0.8125rem] cursor-pointer">
+                                        <Checkbox
                                             name="is_active"
                                             defaultChecked={r.is_active}
-                                            className="h-4 w-4 accent-[color:var(--accent-brand)]"
+                                            value="on"
                                         />
                                         Active
                                         {!r.is_active && (

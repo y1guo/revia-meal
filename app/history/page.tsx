@@ -8,11 +8,12 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { DateRangeField } from '@/components/ui/DateRangeField'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { LinkButton } from '@/components/ui/LinkButton'
+import { NativeSelect } from '@/components/ui/NativeSelect'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPollStatus } from '@/lib/polls'
-import { cn } from '@/lib/cn'
 
 export const metadata: Metadata = { title: 'History' }
 
@@ -140,10 +141,9 @@ export default async function HistoryPage({
             />
 
             <Card className="mb-6">
-                {/* Native <select> is still used for "All"-style filters. Radix
-                    Select reserves the empty-string value, which collides with
-                    a GET form's "unset" semantics. Date range uses our
-                    DateRangeField (Radix Popover + react-day-picker). */}
+                {/* Native <select> (styled) is used for "All"-style filters —
+                    Radix Select reserves empty-string values and we rely on
+                    them for GET-form "unset" semantics. */}
                 <form className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
                     <FilterField label="Template">
                         <NativeSelect name="template" defaultValue={templateFilter}>
@@ -194,12 +194,14 @@ export default async function HistoryPage({
                         </NativeSelect>
                     </FilterField>
                     <div className="col-span-full flex items-center justify-end gap-2">
-                        <Link
+                        <LinkButton
                             href="/history"
-                            className="text-[0.875rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] underline underline-offset-2"
+                            variant="ghost"
+                            size="md"
+                            leftIcon={FilterX}
                         >
                             Clear filters
-                        </Link>
+                        </LinkButton>
                         <Button type="submit" variant="primary">
                             Apply
                         </Button>
@@ -213,9 +215,9 @@ export default async function HistoryPage({
                     title="No polls match these filters."
                     body="Try widening the date range, or clear filters to start over."
                     action={
-                        <Link href="/history">
-                            <Button variant="secondary">Clear filters</Button>
-                        </Link>
+                        <LinkButton href="/history" variant="secondary">
+                            Clear filters
+                        </LinkButton>
                     }
                 />
             ) : (
@@ -296,25 +298,6 @@ function FilterField({
             </span>
             {children}
         </label>
-    )
-}
-
-function NativeSelect({
-    className,
-    ...rest
-}: React.SelectHTMLAttributes<HTMLSelectElement>) {
-    return (
-        <select
-            {...rest}
-            className={cn(
-                'h-9 px-2.5 rounded-[var(--radius-md)]',
-                'bg-[color:var(--surface-raised)]',
-                'border border-[color:var(--border-subtle)]',
-                'text-[0.875rem] text-[color:var(--text-primary)]',
-                'focus:border-[color:var(--accent-brand)]',
-                className,
-            )}
-        />
     )
 }
 

@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { DateRangeField } from '@/components/ui/DateRangeField'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { LinkButton } from '@/components/ui/LinkButton'
+import { NativeSelect } from '@/components/ui/NativeSelect'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { cn } from '@/lib/cn'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPollStatus } from '@/lib/polls'
 import CancelButton from './cancel-button'
@@ -143,7 +144,7 @@ export default async function AdminPollsPage({
             <Card className="mb-6">
                 <form className="grid gap-3 md:grid-cols-2 lg:grid-cols-6">
                     <FilterField label="Template">
-                        <AdminNativeSelect
+                        <NativeSelect
                             name="template"
                             defaultValue={templateFilter}
                         >
@@ -153,7 +154,7 @@ export default async function AdminPollsPage({
                                     {t.name}
                                 </option>
                             ))}
-                        </AdminNativeSelect>
+                        </NativeSelect>
                     </FilterField>
                     <div className="md:col-span-2">
                         <DateRangeField
@@ -164,7 +165,7 @@ export default async function AdminPollsPage({
                         />
                     </div>
                     <FilterField label="Status">
-                        <AdminNativeSelect
+                        <NativeSelect
                             name="status"
                             defaultValue={statusFilter}
                         >
@@ -174,10 +175,10 @@ export default async function AdminPollsPage({
                             <option value="pending_close">Pending close</option>
                             <option value="closed">Closed</option>
                             <option value="cancelled">Cancelled</option>
-                        </AdminNativeSelect>
+                        </NativeSelect>
                     </FilterField>
                     <FilterField label="Winner">
-                        <AdminNativeSelect
+                        <NativeSelect
                             name="winner"
                             defaultValue={winnerFilter}
                         >
@@ -187,10 +188,10 @@ export default async function AdminPollsPage({
                                     {r.name}
                                 </option>
                             ))}
-                        </AdminNativeSelect>
+                        </NativeSelect>
                     </FilterField>
                     <FilterField label="Participant">
-                        <AdminNativeSelect
+                        <NativeSelect
                             name="participant"
                             defaultValue={participantFilter}
                         >
@@ -200,15 +201,17 @@ export default async function AdminPollsPage({
                                     {u.display_name || u.email}
                                 </option>
                             ))}
-                        </AdminNativeSelect>
+                        </NativeSelect>
                     </FilterField>
                     <div className="col-span-full flex items-center justify-end gap-2">
-                        <Link
+                        <LinkButton
                             href="/admin/polls"
-                            className="text-[0.875rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] underline underline-offset-2"
+                            variant="ghost"
+                            size="md"
+                            leftIcon={FilterX}
                         >
                             Clear filters
-                        </Link>
+                        </LinkButton>
                         <Button type="submit" variant="primary">
                             Apply
                         </Button>
@@ -248,7 +251,7 @@ export default async function AdminPollsPage({
                                         <div className="flex items-center gap-2 flex-wrap">
                                             <Link
                                                 href={`/polls/${p.id}`}
-                                                className="font-medium text-[color:var(--text-primary)] hover:text-[color:var(--accent-brand)] underline underline-offset-2 decoration-1"
+                                                className="font-medium text-[color:var(--text-primary)] hover:text-[color:var(--accent-brand)] transition-colors duration-150 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color:var(--accent-brand)]"
                                             >
                                                 {templateName}
                                             </Link>
@@ -313,25 +316,6 @@ function FilterField({
             </span>
             {children}
         </label>
-    )
-}
-
-function AdminNativeSelect({
-    className,
-    ...rest
-}: React.SelectHTMLAttributes<HTMLSelectElement>) {
-    return (
-        <select
-            {...rest}
-            className={cn(
-                'h-9 px-2.5 rounded-[var(--radius-md)]',
-                'bg-[color:var(--surface-raised)]',
-                'border border-[color:var(--border-subtle)]',
-                'text-[0.875rem] text-[color:var(--text-primary)]',
-                'focus:border-[color:var(--accent-brand)]',
-                className,
-            )}
-        />
     )
 }
 

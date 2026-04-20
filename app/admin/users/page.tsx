@@ -2,7 +2,9 @@ import type { Metadata } from 'next'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { Chip } from '@/components/ui/Chip'
+import { NativeSelect } from '@/components/ui/NativeSelect'
 import { TextInput } from '@/components/ui/TextInput'
 import { cn } from '@/lib/cn'
 import { requireAdmin } from '@/lib/auth'
@@ -55,14 +57,14 @@ export default async function UsersPage() {
                                 placeholder="email@example.com"
                             />
                         </label>
-                        <label className="flex flex-col gap-1">
+                        <label className="flex flex-col gap-1 w-[140px]">
                             <span className="text-[0.75rem] font-medium text-[color:var(--text-secondary)]">
                                 Role
                             </span>
-                            <AdminNativeSelect name="role" defaultValue="user">
+                            <NativeSelect name="role" defaultValue="user">
                                 <option value="user">user</option>
                                 <option value="admin">admin</option>
-                            </AdminNativeSelect>
+                            </NativeSelect>
                         </label>
                         <Button type="submit" variant="primary">
                             Add to allowlist
@@ -123,27 +125,27 @@ export default async function UsersPage() {
                                             placeholder="Display name"
                                             size="sm"
                                         />
-                                        <AdminNativeSelect
+                                        <NativeSelect
                                             name="role"
                                             defaultValue={u.role}
                                             disabled={isSelf}
+                                            size="sm"
                                             className="min-w-[100px]"
                                         >
                                             <option value="user">user</option>
                                             <option value="admin">admin</option>
-                                        </AdminNativeSelect>
+                                        </NativeSelect>
                                         <label
                                             className={cn(
-                                                'flex items-center gap-1.5 text-[0.8125rem]',
-                                                isSelf && 'opacity-50',
+                                                'flex items-center gap-2 text-[0.8125rem] cursor-pointer',
+                                                isSelf && 'opacity-50 cursor-not-allowed',
                                             )}
                                         >
-                                            <input
-                                                type="checkbox"
+                                            <Checkbox
                                                 name="is_active"
                                                 defaultChecked={u.is_active}
                                                 disabled={isSelf}
-                                                className="h-4 w-4 accent-[color:var(--accent-brand)]"
+                                                value="on"
                                             />
                                             Active
                                         </label>
@@ -173,22 +175,3 @@ export default async function UsersPage() {
     )
 }
 
-function AdminNativeSelect({
-    className,
-    ...rest
-}: React.SelectHTMLAttributes<HTMLSelectElement>) {
-    return (
-        <select
-            {...rest}
-            className={cn(
-                'h-9 px-2.5 rounded-[var(--radius-md)]',
-                'bg-[color:var(--surface-raised)]',
-                'border border-[color:var(--border-subtle)]',
-                'text-[0.875rem] text-[color:var(--text-primary)]',
-                'focus:border-[color:var(--accent-brand)]',
-                'disabled:opacity-50',
-                className,
-            )}
-        />
-    )
-}

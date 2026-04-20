@@ -1,6 +1,5 @@
-import { Coffee } from 'lucide-react'
+import { Coffee, RotateCcw } from 'lucide-react'
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { signOut } from '@/app/actions'
 import { AppShell } from '@/components/shell/AppShell'
 import { PageHeader } from '@/components/shell/PageHeader'
@@ -12,6 +11,7 @@ import {
     FlavorBar,
     type FlavorSegment,
 } from '@/components/ui/FlavorBar'
+import { LinkButton } from '@/components/ui/LinkButton'
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -160,12 +160,14 @@ export default async function PeoplePage({
                 <form className="flex flex-wrap items-end gap-3">
                     <DateRangeField from={from} to={to} label="Date range" />
                     <div className="ml-auto flex items-center gap-2">
-                        <Link
+                        <LinkButton
                             href="/people"
-                            className="text-[0.875rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] underline underline-offset-2"
+                            variant="ghost"
+                            size="md"
+                            leftIcon={RotateCcw}
                         >
                             Reset
-                        </Link>
+                        </LinkButton>
                         <Button type="submit" variant="primary">
                             Apply
                         </Button>
