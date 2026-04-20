@@ -32,7 +32,10 @@ We store only a hash of the token; the plaintext is shown **once** at creation t
 
 ### User
 
-None in MVP. Voting via API is intentionally out of scope — see [roadmap.md](roadmap.md).
+- **`GET /api/v1/restaurants/:id`**
+  Returns a single restaurant's public fields: `id`, `name`, `notes`, `doordash_url`. Admin keys additionally receive `is_active`. Intended for integrations that already know a restaurant id (e.g. from a poll result's `winner_id`) and want the DoorDash link without fetching the full poll. 404 if the id is unknown.
+
+Voting via API is intentionally out of scope — see [roadmap.md](roadmap.md).
 
 ## Errors
 
