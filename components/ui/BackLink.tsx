@@ -18,17 +18,23 @@ export function BackLink({ href, children, className }: BackLinkProps) {
         <Link
             href={href}
             className={cn(
-                'inline-flex items-center gap-1.5',
-                'h-8 -ml-2 px-2.5 rounded-full',
+                'group inline-flex items-center gap-1.5',
+                'h-8 px-3 rounded-full',
                 'text-[0.8125rem] font-medium leading-none',
-                'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
-                'hover:bg-[color:var(--surface-raised)]',
+                'bg-[color:var(--surface-raised)] text-[color:var(--text-secondary)]',
+                'border border-[color:var(--border-subtle)]',
+                'hover:bg-[color:var(--surface-sunken)] hover:text-[color:var(--text-primary)]',
                 'transition-colors duration-150',
                 'mb-3',
                 className,
             )}
         >
-            <ArrowLeft size={14} strokeWidth={1.75} aria-hidden="true" />
+            <ArrowLeft
+                size={14}
+                strokeWidth={1.75}
+                aria-hidden="true"
+                className="transition-transform duration-150 group-hover:-translate-x-0.5 motion-reduce:group-hover:translate-x-0"
+            />
             <span>{children}</span>
         </Link>
     )
