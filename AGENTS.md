@@ -30,3 +30,10 @@ Two invariants worth surfacing here because they bite often:
 When in doubt, read the relevant section of the design brief first.
 
 The brand palette is **Boba / Lime / Sunny** — documented in [docs/design/palette-refresh.md](docs/design/palette-refresh.md). Components should read semantic CSS vars (`--surface-raised`, `--text-primary`, `--accent-brand`, `--link-fg`, `--focus-ring`, status/banked tokens) defined in [app/globals.css](app/globals.css) rather than raw palette utilities — that's what makes light/dark swap automatic. Run `pnpm exec tsx scripts/check-contrast.ts` after any palette change; 44/44 pairs must still pass WCAG AA.
+
+# Screenshot size limits for the agent
+
+Claude's image-reading pipeline rejects images whose width or height exceeds 2000px, so any image the agent reads back must stay below that ceiling on **both** axes.
+
+1. **Any image the agent reads must be under 2000px wide AND under 2000px tall.** If a file is larger, resize before reading — on macOS, `sips -Z 1600 path/to.png` rewrites the file in place capped at 1600px on the longest side. Re-capture at a smaller region if the resize would lose too much detail. Don't feed an oversize image to the model and hope it works.
+2. **When capturing via Playwright MCP, keep both the viewport and the clip region under 2000px, and pass `scale: 'css'` defensively.** The viewport sets the CSS size; retina scaling (if the context has `deviceScaleFactor: 2`) would otherwise double the output PNG. `page.screenshot({ scale: 'css', clip: { width, height, … } })` forces one image pixel per CSS pixel no matter the DPR, so the PNG dimensions match the clip exactly. Also avoid `fullPage: true` unless you know the page's scroll height stays under 2000px — prefer explicit `clip` and `fullPage: false`. If in doubt, run `sips -g pixelWidth -g pixelHeight .playwright-mcp/your.png` after the first capture to verify.
