@@ -43,6 +43,7 @@ export async function updateUser(formData: FormData) {
     }
 
     revalidatePath('/admin/users')
+    revalidatePath(`/admin/users/${id}`)
 }
 
 export async function deleteUser(formData: FormData) {
@@ -61,4 +62,27 @@ export async function deleteUser(formData: FormData) {
     // preserved without orphaned attribution.
     await admin.from('users').delete().eq('id', id)
     revalidatePath('/admin/users')
+}
+
+export async function bulkSetActive(ids: string[], active: boolean) {
+    const currentAdmin = await requireAdmin()
+    const safeIds = ids.filter((id) => id !== currentAdmin.id)
+    if (safeIds.length === 0) return { updated: 0 }
+    const admin = createAdminClient()
+    await admin
+        .from('users')
+        .update({ is_active: active })
+        .in('id', safeIds)
+    revalidatePath('/admin/users')
+    return { updated: safeIds.length }
+}
+
+export async function bulkDelete(ids: string[]) {
+    const currentAdmin = await requireAdmin()
+    const safeIds = ids.filter((id) => id !== currentAdmin.id)
+    if (safeIds.length === 0) return { deleted: 0 }
+    const admin = createAdminClient()
+    await admin.from('users').delete().in('id', safeIds)
+    revalidatePath('/admin/users')
+    return { deleted: safeIds.length }
 }
