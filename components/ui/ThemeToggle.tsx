@@ -91,7 +91,7 @@ export function ThemeToggle({
                         onClick={() => handleChange(value)}
                         onKeyDown={(e) => handleKeyDown(e, index)}
                         className={cn(
-                            'inline-flex items-center justify-center gap-1.5',
+                            'inline-flex flex-1 items-center justify-center gap-1.5',
                             'h-full rounded-full',
                             'text-[0.8125rem] font-medium leading-none',
                             'transition-colors duration-150',
