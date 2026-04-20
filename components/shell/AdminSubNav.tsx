@@ -32,49 +32,38 @@ export function AdminSubNav() {
 
     return (
         <>
-            {/* Desktop strip */}
-            <div
+            {/* Desktop segmented-control pill */}
+            <nav
+                aria-label="Admin"
                 className={cn(
-                    'hidden md:block',
-                    'bg-[color:var(--surface-raised)]',
-                    'border-b border-[color:var(--border-subtle)]',
-                    'mb-6 -mt-6 md:-mt-10 md:mb-8',
+                    'hidden md:flex w-fit items-center gap-0.5',
+                    'bg-[color:var(--surface-sunken)]',
+                    'border border-[color:var(--border-subtle)]',
+                    'rounded-full p-0.5 mb-6',
                 )}
             >
-                <div className="mx-auto max-w-[1100px] px-4 md:px-6 2xl:px-8">
-                    <nav
-                        aria-label="Admin"
-                        className="flex items-center gap-1 h-11"
-                    >
-                        {ADMIN_LINKS.map((link) => {
-                            const active = matchActive(pathname, link.href)
-                            return (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    aria-current={active ? 'page' : undefined}
-                                    className={cn(
-                                        'relative inline-flex items-center h-11 px-3',
-                                        'text-[0.8125rem] font-medium',
-                                        'transition-colors duration-150',
-                                        active
-                                            ? 'text-[color:var(--text-primary)]'
-                                            : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
-                                    )}
-                                >
-                                    {link.label}
-                                    {active && (
-                                        <span
-                                            aria-hidden="true"
-                                            className="absolute bottom-0 left-3 right-3 h-[2px] bg-[color:var(--accent-brand)] rounded-full"
-                                        />
-                                    )}
-                                </Link>
-                            )
-                        })}
-                    </nav>
-                </div>
-            </div>
+                {ADMIN_LINKS.map((link) => {
+                    const active = matchActive(pathname, link.href)
+                    return (
+                        <Link
+                            key={link.href}
+                            href={link.href}
+                            aria-current={active ? 'page' : undefined}
+                            className={cn(
+                                'inline-flex items-center justify-center',
+                                'h-8 px-3.5 rounded-full',
+                                'text-[0.8125rem] font-medium leading-none',
+                                'transition-colors duration-150',
+                                active
+                                    ? 'bg-[color:var(--surface-raised)] text-[color:var(--text-primary)] shadow-[var(--shadow-card-rest)]'
+                                    : 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
+                            )}
+                        >
+                            {link.label}
+                        </Link>
+                    )
+                })}
+            </nav>
 
             {/* Mobile dropdown */}
             <div className="md:hidden mb-4">

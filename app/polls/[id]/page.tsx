@@ -1,11 +1,11 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Award, Loader2 } from 'lucide-react'
 import { signOut } from '@/app/actions'
 import { AppShell } from '@/components/shell/AppShell'
 import { PageHeader } from '@/components/shell/PageHeader'
 import { Avatar } from '@/components/ui/Avatar'
+import { BackLink } from '@/components/ui/BackLink'
 import { Card } from '@/components/ui/Card'
 import { Chip } from '@/components/ui/Chip'
 import { CountUp } from '@/components/ui/CountUp'
@@ -251,12 +251,7 @@ export default async function PollPage({ params }: { params: Params }) {
             signOutAction={signOut}
             maxWidthClassName="max-w-[880px]"
         >
-            <Link
-                href="/"
-                className="inline-flex items-center text-[0.8125rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] mb-3"
-            >
-                ← Today&apos;s polls
-            </Link>
+            <BackLink href="/">Today&apos;s polls</BackLink>
             <PageHeader
                 title={template?.name ?? 'Poll'}
                 subtitle={

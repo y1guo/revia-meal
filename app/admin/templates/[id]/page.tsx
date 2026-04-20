@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { PageHeader } from '@/components/shell/PageHeader'
+import { BackLink } from '@/components/ui/BackLink'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Chip } from '@/components/ui/Chip'
@@ -82,12 +82,7 @@ export default async function TemplateEditPage({
 
     return (
         <>
-            <Link
-                href="/admin/templates"
-                className="inline-flex items-center text-[0.8125rem] text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)] mb-3"
-            >
-                ← All templates
-            </Link>
+            <BackLink href="/admin/templates">All templates</BackLink>
             <PageHeader
                 title={template.name}
                 subtitle="Template settings and restaurant assignments."
