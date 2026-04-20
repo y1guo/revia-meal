@@ -41,8 +41,12 @@ export default async function Home() {
                 />
             ) : (
                 <div className="grid gap-4 md:grid-cols-2">
-                    {entries.map((entry) => (
-                        <PollCard key={entry.poll.id} entry={entry} />
+                    {entries.map((entry, i) => (
+                        <PollCard
+                            key={entry.poll.id}
+                            entry={entry}
+                            index={i}
+                        />
                     ))}
                 </div>
             )}
@@ -50,10 +54,14 @@ export default async function Home() {
     )
 }
 
-function PollCard({ entry }: { entry: PollEntry }) {
+function PollCard({ entry, index }: { entry: PollEntry; index: number }) {
     const { template, poll, status } = entry
     return (
-        <Link href={`/polls/${poll.id}`} className="block">
+        <Link
+            href={`/polls/${poll.id}`}
+            className="block animate-fade-slide-up"
+            style={{ animationDelay: `${index * 60}ms` }}
+        >
             <Card
                 interactive
                 className="h-full flex flex-col gap-2"

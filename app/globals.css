@@ -194,6 +194,41 @@ body {
     border-radius: inherit;
 }
 
+/* ---------- Motion keyframes + helpers ---------- */
+@keyframes fade-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scale-pop {
+    0% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.025);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-fade-slide-up {
+    animation: fade-slide-up 400ms var(--ease-out-quart) both;
+}
+
+.animate-scale-pop {
+    animation: scale-pop 600ms var(--ease-out-quart) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

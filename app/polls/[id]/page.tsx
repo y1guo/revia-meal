@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/shell/PageHeader'
 import { Avatar } from '@/components/ui/Avatar'
 import { Card } from '@/components/ui/Card'
 import { Chip } from '@/components/ui/Chip'
+import { CountUp } from '@/components/ui/CountUp'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
@@ -412,7 +413,7 @@ function ClosedBreakdown({
 
     return (
         <div className="space-y-3">
-            {ordered.map((r) => {
+            {ordered.map((r, idx) => {
                 const t = tallyMap.get(r.id)
                 const rVoters = votersByRestaurant.get(r.id) ?? []
                 const isWinner = r.id === winnerId
@@ -421,9 +422,17 @@ function ClosedBreakdown({
                         key={r.id}
                         className={cn(
                             'p-4 md:p-5 space-y-3',
-                            isWinner &&
-                                'border-2 border-[color:var(--accent-brand)]/40 bg-[color:var(--banked-bg)]',
+                            isWinner
+                                ? 'animate-scale-pop border-2 border-[color:var(--accent-brand)]/40 bg-[color:var(--banked-bg)]'
+                                : 'animate-fade-slide-up',
                         )}
+                        style={
+                            isWinner
+                                ? undefined
+                                : {
+                                      animationDelay: `${300 + idx * 80}ms`,
+                                  }
+                        }
                     >
                         <div className="flex flex-wrap items-center gap-2">
                             {isWinner && (
@@ -462,10 +471,32 @@ function ClosedBreakdown({
                         )}
                         {t ? (
                             <p className="text-[0.875rem] font-mono tabular-nums text-[color:var(--text-secondary)]">
-                                today {formatNum(t.today_votes)} + banked{' '}
-                                {formatNum(t.banked_boost)} ={' '}
+                                today{' '}
+                                <CountUp
+                                    value={t.today_votes}
+                                    format={formatNum}
+                                    delayMs={
+                                        isWinner ? 500 : 400 + idx * 80
+                                    }
+                                />{' '}
+                                + banked{' '}
+                                <CountUp
+                                    value={t.banked_boost}
+                                    format={formatNum}
+                                    delayMs={
+                                        isWinner ? 500 : 400 + idx * 80
+                                    }
+                                />{' '}
+                                ={' '}
                                 <span className="font-semibold text-[color:var(--text-primary)]">
-                                    total {formatNum(t.total_tally)}
+                                    total{' '}
+                                    <CountUp
+                                        value={t.total_tally}
+                                        format={formatNum}
+                                        delayMs={
+                                            isWinner ? 500 : 400 + idx * 80
+                                        }
+                                    />
                                 </span>
                             </p>
                         ) : (
