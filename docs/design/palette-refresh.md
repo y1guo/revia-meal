@@ -102,10 +102,12 @@ slate-900  #141E20
 frost-50   #E6F8FA   (light page background)
 mint-50    #F6FFFA   (light raised surfaces)
 mint-100   #E3F3EA   (light sunken surfaces)
-teal-700   #243337   (dark sunken)
 teal-800   #2A3C41   (dark raised)
-teal-900   #1D2D31   (dark base)
+teal-900   #1D2D31   (dark sunken — owner's original dark-main spec)
+teal-950   #0E1618   (dark base — deeper than owner spec for a more restful night mode)
 ```
+
+Note: the owner-supplied dark-mode background was `#1D2D31`; we push base a step darker (`#0E1618`) and keep `#1D2D31` as the sunken surface. This gives cards and inputs three distinguishable elevations in dark mode while landing on a deeper, less washed-out page color.
 
 ### Semantic status scales
 ```
@@ -130,9 +132,9 @@ danger-700 #A5291F   (light-mode chip fg — AA on tinted bg)
 ### Surfaces & borders
 | Token | Light | Dark |
 | :--- | :--- | :--- |
-| `--surface-base` | `frost-50` | `teal-900` |
+| `--surface-base` | `frost-50` | `teal-950` |
 | `--surface-raised` | `mint-50` | `teal-800` |
-| `--surface-sunken` | `mint-100` | `teal-700` |
+| `--surface-sunken` | `mint-100` | `teal-900` |
 | `--border-subtle` | `#C9E2E7` (boba-100 + 20% slate) | `rgba(248,250,251,0.08)` |
 | `--border-strong` | `slate-400` | `rgba(248,250,251,0.24)` |
 

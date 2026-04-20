@@ -77,9 +77,9 @@ const LIGHT = {
 } as const
 
 const DARK = {
-    'surface-base': hexToRgb('#1D2D31'), // teal-900
+    'surface-base': hexToRgb('#0E1618'), // teal-950 (deepened dark base)
     'surface-raised': hexToRgb('#2A3C41'), // teal-800
-    'surface-sunken': hexToRgb('#243337'), // teal-700
+    'surface-sunken': hexToRgb('#1D2D31'), // teal-900
 
     'text-primary': hexToRgb('#F8FAFB'), // slate-50
     'text-secondary': hexToRgb('#C8D1D3'), // slate-300

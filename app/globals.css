@@ -50,9 +50,10 @@
     --color-frost-50: #e6f8fa; /* light-mode page background */
     --color-mint-50: #f6fffa; /* light-mode raised surface */
     --color-mint-100: #e3f3ea; /* light-mode sunken */
-    --color-teal-700: #243337; /* dark sunken */
+    --color-teal-700: #243337;
     --color-teal-800: #2a3c41; /* dark raised */
-    --color-teal-900: #1d2d31; /* dark base */
+    --color-teal-900: #1d2d31; /* dark sunken */
+    --color-teal-950: #0e1618; /* dark base (deeper than owner spec for a more restful night mode) */
 
     /* Semantic status scales */
     --color-success-400: #7dc983;
@@ -135,9 +136,9 @@
 
 /* ---------- Semantic tokens — dark mode ---------- */
 .dark {
-    --surface-base: var(--color-teal-900);
+    --surface-base: var(--color-teal-950);
     --surface-raised: var(--color-teal-800);
-    --surface-sunken: var(--color-teal-700);
+    --surface-sunken: var(--color-teal-900);
     --border-subtle: rgba(248, 250, 251, 0.08);
     --border-strong: rgba(248, 250, 251, 0.24);
 
