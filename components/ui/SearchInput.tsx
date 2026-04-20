@@ -2,7 +2,7 @@
 
 import { Search, X } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { cn } from '@/lib/cn'
 
 type SearchInputProps = {
@@ -33,21 +33,30 @@ export function SearchInput({
 }: SearchInputProps) {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const initial = searchParams.get(paramKey) ?? ''
-    const [value, setValue] = useState(initial)
+    const urlValue = searchParams.get(paramKey) ?? ''
+    const [value, setValue] = useState(urlValue)
+    const [lastSynced, setLastSynced] = useState(urlValue)
     const [, startTransition] = useTransition()
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-    // If the URL changes under us (back button, etc.) reflect it.
-    useEffect(() => {
-        setValue(searchParams.get(paramKey) ?? '')
-    }, [searchParams, paramKey])
+    // Sync local state when the URL changes from outside (back button, link
+    // with a ?q= param, etc.) using React's store-info-from-previous-renders
+    // pattern — no effect needed.
+    if (urlValue !== lastSynced) {
+        setLastSynced(urlValue)
+        setValue(urlValue)
+    }
 
     const push = (next: string) => {
+        const trimmed = next.trim()
         const params = new URLSearchParams(searchParams.toString())
-        if (next.trim()) params.set(paramKey, next.trim())
+        if (trimmed) params.set(paramKey, trimmed)
         else params.delete(paramKey)
         for (const k of resetParams) params.delete(k)
+        // Pre-record what we're about to push so the render-time sync above
+        // doesn't re-snap back the user's live typing when searchParams
+        // arrives with the same value.
+        setLastSynced(trimmed)
         startTransition(() => {
             const qs = params.toString()
             router.replace(qs ? `?${qs}` : '?', { scroll: false })

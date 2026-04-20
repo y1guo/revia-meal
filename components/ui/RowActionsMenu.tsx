@@ -25,7 +25,8 @@ export function RowActionsMenu({
                     'inline-flex h-8 w-8 items-center justify-center',
                     'rounded-full',
                     'text-[color:var(--text-secondary)]',
-                    'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+                    // Always visible on touch devices; fade in on hover for desktop.
+                    'opacity-80 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100',
                     'data-[state=open]:opacity-100 data-[state=open]:bg-[color:var(--surface-sunken)]',
                     'hover:bg-[color:var(--surface-sunken)] hover:text-[color:var(--text-primary)]',
                     'transition-[opacity,background-color,color] duration-150',
@@ -75,11 +76,10 @@ export function RowActionItem({
     return (
         <DropdownMenu.Item
             disabled={disabled}
-            onSelect={(e) => {
-                if (disabled) return
-                e.preventDefault()
-                onSelect?.()
-            }}
+            // Let Radix close the menu on selection (the default). Callers
+            // that open a modal from onSelect don't need to hold the menu
+            // open — Radix hands focus off cleanly.
+            onSelect={() => onSelect?.()}
             className={cn(
                 'flex items-center gap-2',
                 'px-2 py-1.5 rounded-[var(--radius-sm)]',
