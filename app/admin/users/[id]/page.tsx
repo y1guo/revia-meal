@@ -6,6 +6,7 @@ import { BackLink } from '@/components/ui/BackLink'
 import { Card } from '@/components/ui/Card'
 import { Chip } from '@/components/ui/Chip'
 import { requireAdmin } from '@/lib/auth'
+import { formatDate } from '@/lib/format-time'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { DeleteUserCard } from './delete-user-card'
 import { UserEditForm } from './user-edit-form'
@@ -61,11 +62,7 @@ export default async function UserDetailPage({
     }
 
     const isSelf = user.id === currentAdmin.id
-    const addedLabel = new Date(user.created_at).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    })
+    const addedLabel = formatDate(user.created_at)
 
     return (
         <>

@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { getCurrentUser } from '@/lib/auth'
+import { formatDate, formatTime } from '@/lib/format-time'
 import { getTodaysDashboard, type PollStatus } from '@/lib/polls'
 import { signOut } from './actions'
 
@@ -24,7 +25,7 @@ export default async function Home() {
     if (!user || !user.is_active) redirect('/login')
 
     const entries = await getTodaysDashboard()
-    const todayLabel = new Date().toLocaleDateString(undefined, {
+    const todayLabel = formatDate(new Date(), {
         weekday: 'long',
         month: 'long',
         day: 'numeric',
@@ -134,9 +135,3 @@ function relativeFrom(
     return `${verb}`
 }
 
-function formatTime(isoString: string): string {
-    return new Date(isoString).toLocaleTimeString(undefined, {
-        hour: 'numeric',
-        minute: '2-digit',
-    })
-}

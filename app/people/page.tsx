@@ -15,6 +15,7 @@ import {
 import { LinkButton } from '@/components/ui/LinkButton'
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
+import { toISODate } from '@/lib/format-time'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { selectUsersWithAvatar } from '@/lib/users'
 
@@ -26,14 +27,7 @@ function defaultRange(): { from: string; to: string } {
     const today = new Date()
     const from = new Date(today)
     from.setDate(today.getDate() - 30)
-    return {
-        from: toISODate(from),
-        to: toISODate(today),
-    }
-}
-
-function toISODate(d: Date): string {
-    return d.toLocaleDateString('en-CA')
+    return { from: toISODate(from), to: toISODate(today) }
 }
 
 export default async function PeoplePage({

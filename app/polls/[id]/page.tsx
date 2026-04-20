@@ -12,6 +12,7 @@ import { CountUp } from '@/components/ui/CountUp'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
+import { formatDateTime } from '@/lib/format-time'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { selectUsersWithAvatar } from '@/lib/users'
 import {
@@ -647,13 +648,6 @@ function formatDate(dateStr: string): string {
         month: 'long',
         day: 'numeric',
         timeZone: 'UTC',
-    })
-}
-
-function formatDateTime(isoString: string): string {
-    return new Date(isoString).toLocaleString(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
     })
 }
 

@@ -9,6 +9,7 @@ import { NativeSelect } from '@/components/ui/NativeSelect'
 import { Pagination } from '@/components/ui/Pagination'
 import { TableCount } from '@/components/ui/TableToolbar'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { toISODate } from '@/lib/format-time'
 import { getPollStatus } from '@/lib/polls'
 import { PollsTable, type PollTableRow } from './polls-table'
 
@@ -30,10 +31,7 @@ function defaultRange(): { from: string; to: string } {
     const today = new Date()
     const from = new Date(today)
     from.setDate(today.getDate() - 30)
-    return {
-        from: from.toLocaleDateString('en-CA'),
-        to: today.toLocaleDateString('en-CA'),
-    }
+    return { from: toISODate(from), to: toISODate(today) }
 }
 
 export default async function AdminPollsPage({

@@ -12,6 +12,7 @@ import { TextInput } from '@/components/ui/TextInput'
 import { ThemeToggle } from '@/components/ui/ThemeToggle'
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
+import { formatDateTime } from '@/lib/format-time'
 import { createAdminClient } from '@/lib/supabase/admin'
 import CreateKeyForm from './create-key-form'
 import RevokeButton from './revoke-button'
@@ -207,9 +208,3 @@ function KeyRow({ row }: { row: ApiKeyRow }) {
     )
 }
 
-function formatDateTime(isoString: string): string {
-    return new Date(isoString).toLocaleString(undefined, {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-    })
-}

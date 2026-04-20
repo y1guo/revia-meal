@@ -18,6 +18,7 @@ import {
     RowActionsMenu,
 } from '@/components/ui/RowActionsMenu'
 import { TableToolbar } from '@/components/ui/TableToolbar'
+import { formatDate } from '@/lib/format-time'
 import { bulkSetActiveRestaurants } from './actions'
 
 export type RestaurantRow = {
@@ -139,12 +140,7 @@ export function RestaurantsTable({ rows, leading, trailing }: Props) {
             header: 'Added',
             className: 'w-[140px] text-[color:var(--text-secondary)]',
             hideOnMobile: true,
-            cell: (r) =>
-                new Date(r.created_at).toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                }),
+            cell: (r) => formatDate(r.created_at),
         },
     ]
 

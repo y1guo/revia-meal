@@ -12,6 +12,7 @@ import { LinkButton } from '@/components/ui/LinkButton'
 import { NativeSelect } from '@/components/ui/NativeSelect'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { requireUser } from '@/lib/auth'
+import { toISODate } from '@/lib/format-time'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getPollStatus } from '@/lib/polls'
 
@@ -30,10 +31,7 @@ function defaultRange(): { from: string; to: string } {
     const today = new Date()
     const from = new Date(today)
     from.setDate(today.getDate() - 30)
-    return {
-        from: from.toLocaleDateString('en-CA'),
-        to: today.toLocaleDateString('en-CA'),
-    }
+    return { from: toISODate(from), to: toISODate(today) }
 }
 
 export default async function HistoryPage({

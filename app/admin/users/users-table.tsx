@@ -14,6 +14,7 @@ import {
     RowActionSeparator,
 } from '@/components/ui/RowActionsMenu'
 import { TableToolbar } from '@/components/ui/TableToolbar'
+import { formatDate } from '@/lib/format-time'
 import { bulkDelete, bulkSetActive } from './actions'
 
 export type UserRow = {
@@ -148,12 +149,7 @@ export function UsersTable({
             header: 'Added',
             className: 'w-[140px] text-[color:var(--text-secondary)]',
             hideOnMobile: true,
-            cell: (u) =>
-                new Date(u.created_at).toLocaleDateString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                }),
+            cell: (u) => formatDate(u.created_at),
         },
     ]
 

@@ -4,6 +4,7 @@ import { PageHeader } from '@/components/shell/PageHeader'
 import { BackLink } from '@/components/ui/BackLink'
 import { Chip } from '@/components/ui/Chip'
 import { requireAdmin } from '@/lib/auth'
+import { formatDate } from '@/lib/format-time'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { RestaurantEditForm } from './restaurant-edit-form'
 
@@ -35,11 +36,7 @@ export default async function RestaurantDetailPage({
         created_at: string
     }
 
-    const addedLabel = new Date(r.created_at).toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    })
+    const addedLabel = formatDate(r.created_at)
 
     return (
         <>
