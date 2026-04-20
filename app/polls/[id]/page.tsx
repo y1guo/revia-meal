@@ -469,7 +469,6 @@ function ClosedBreakdown({
                                 today{' '}
                                 <CountUp
                                     value={t.today_votes}
-                                    format={formatNum}
                                     delayMs={
                                         isWinner ? 500 : 400 + idx * 80
                                     }
@@ -477,7 +476,6 @@ function ClosedBreakdown({
                                 + banked{' '}
                                 <CountUp
                                     value={t.banked_boost}
-                                    format={formatNum}
                                     delayMs={
                                         isWinner ? 500 : 400 + idx * 80
                                     }
@@ -487,7 +485,6 @@ function ClosedBreakdown({
                                     total{' '}
                                     <CountUp
                                         value={t.total_tally}
-                                        format={formatNum}
                                         delayMs={
                                             isWinner ? 500 : 400 + idx * 80
                                         }

@@ -9,13 +9,18 @@ type Props = {
     /** Start delay before the animation begins. Default 0. */
     delayMs?: number
     /**
-     * How to render the number at each tick. Defaults to 2 decimal places.
-     * Pass the caller's own formatter to match surrounding static numbers.
+     * Number formatting. "trim" (default) shows up to 2 decimals and drops
+     * trailing zeros ("2.5", "2"). "fixed2" always shows 2 decimals ("2.50").
+     * A string identifier instead of a function keeps this component
+     * server-renderable from RSC props.
      */
-    format?: (n: number) => string
+    format?: 'trim' | 'fixed2'
 }
 
-const defaultFormat = (n: number) => n.toFixed(2)
+function formatNumber(n: number, mode: 'trim' | 'fixed2'): string {
+    const s = n.toFixed(2)
+    return mode === 'fixed2' ? s : s.replace(/\.?0+$/, '')
+}
 
 /**
  * Animates a number from 0 → value once on mount. Used for the winner-reveal
@@ -26,7 +31,7 @@ export function CountUp({
     value,
     durationMs = 700,
     delayMs = 0,
-    format = defaultFormat,
+    format = 'trim',
 }: Props) {
     const [display, setDisplay] = useState(0)
     const rafRef = useRef<number | null>(null)
@@ -62,5 +67,5 @@ export function CountUp({
         }
     }, [value, durationMs, delayMs])
 
-    return <>{format(display)}</>
+    return <>{formatNumber(display, format)}</>
 }
