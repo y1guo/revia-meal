@@ -11,6 +11,7 @@ import { cn } from '@/lib/cn'
 type AvatarMenuProps = {
     displayName: string | null
     email: string
+    avatarUrl?: string | null
     isAdmin: boolean
     signOutAction: () => void | Promise<void>
     /** If true, Theme segment renders inside the panel (desktop). If false, hidden (mobile puts it in /settings). */
@@ -21,6 +22,7 @@ type AvatarMenuProps = {
 export function AvatarMenu({
     displayName,
     email,
+    avatarUrl,
     isAdmin,
     signOutAction,
     showThemeToggle = true,
@@ -38,7 +40,12 @@ export function AvatarMenu({
                 )}
                 aria-label="Account menu"
             >
-                <Avatar name={displayName} email={email} size={28} />
+                <Avatar
+                    name={displayName}
+                    email={email}
+                    imageUrl={avatarUrl}
+                    size={28}
+                />
                 <ChevronDown
                     size={14}
                     strokeWidth={1.75}
@@ -59,7 +66,12 @@ export function AvatarMenu({
                     )}
                 >
                     <div className="flex items-start gap-3 px-2 py-2">
-                        <Avatar name={displayName} email={email} size={40} />
+                        <Avatar
+                            name={displayName}
+                            email={email}
+                            imageUrl={avatarUrl}
+                            size={40}
+                        />
                         <div className="min-w-0 flex-1">
                             <div className="text-[0.875rem] font-medium text-[color:var(--text-primary)] truncate">
                                 {displayName ?? email}

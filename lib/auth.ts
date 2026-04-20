@@ -10,6 +10,7 @@ export type AppUser = {
     role: 'user' | 'admin'
     is_active: boolean
     supabase_auth_id: string | null
+    avatar_url: string | null
 }
 
 // Cached per request: multiple calls within one render reuse the result.
@@ -21,12 +22,21 @@ export const getCurrentUser = cache(async (): Promise<AppUser | null> => {
     if (!user) return null
 
     const admin = createAdminClient()
+    // Read the user row without avatar_url — that column lives behind a
+    // separate migration (0002). Try to pick up the cached avatar_url too,
+    // but fall back to metadata if the column doesn't exist yet.
     const { data } = await admin
         .from('users')
         .select('id, email, display_name, role, is_active, supabase_auth_id')
         .eq('supabase_auth_id', user.id)
         .maybeSingle()
-    return (data as AppUser) ?? null
+    if (!data) return null
+    const meta = (user.user_metadata ?? {}) as Record<string, unknown>
+    const metaAvatar =
+        (typeof meta.avatar_url === 'string' && meta.avatar_url) ||
+        (typeof meta.picture === 'string' && meta.picture) ||
+        null
+    return { ...(data as Omit<AppUser, 'avatar_url'>), avatar_url: metaAvatar }
 })
 
 export async function requireUser(): Promise<AppUser> {

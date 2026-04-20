@@ -52,6 +52,7 @@ export default async function SettingsPage() {
                         <Avatar
                             name={user.display_name}
                             email={user.email}
+                            imageUrl={user.avatar_url}
                             size={40}
                         />
                         <div className="min-w-0 flex-1 space-y-1">

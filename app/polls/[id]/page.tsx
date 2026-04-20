@@ -55,6 +55,7 @@ type VoterPick = {
     vote_weight: number
     display_name: string | null
     email: string
+    avatar_url: string | null
 }
 
 const POLL_SELECT =
@@ -219,19 +220,42 @@ export default async function PollPage({ params }: { params: Params }) {
         const voterIds = Array.from(
             new Set((allVotesRes.data ?? []).map((v) => v.user_id as string)),
         )
-        const { data: voterRows } =
-            voterIds.length > 0
-                ? await admin
-                      .from('users')
-                      .select('id, display_name, email')
-                      .in('id', voterIds)
-                : { data: [] }
-        const userMap = new Map(
-            (voterRows ?? []).map((u) => [
-                u.id as string,
-                {
+        let voterRows:
+            | { id: string; display_name: string | null; email: string; avatar_url: string | null }[]
+            | null = null
+        if (voterIds.length > 0) {
+            const res = await admin
+                .from('users')
+                .select('id, display_name, email, avatar_url')
+                .in('id', voterIds)
+            if (res.error && /column.*avatar_url/i.test(res.error.message)) {
+                // Migration 0002 not applied yet — fall back without avatars.
+                const retry = await admin
+                    .from('users')
+                    .select('id, display_name, email')
+                    .in('id', voterIds)
+                voterRows = (retry.data ?? []).map((u) => ({
+                    id: u.id as string,
                     display_name: u.display_name as string | null,
                     email: u.email as string,
+                    avatar_url: null,
+                }))
+            } else {
+                voterRows = (res.data ?? []).map((u) => ({
+                    id: u.id as string,
+                    display_name: u.display_name as string | null,
+                    email: u.email as string,
+                    avatar_url: (u.avatar_url as string | null) ?? null,
+                }))
+            }
+        }
+        const userMap = new Map(
+            (voterRows ?? []).map((u) => [
+                u.id,
+                {
+                    display_name: u.display_name,
+                    email: u.email,
+                    avatar_url: u.avatar_url,
                 },
             ]),
         )
@@ -242,6 +266,7 @@ export default async function PollPage({ params }: { params: Params }) {
             display_name:
                 userMap.get(v.user_id as string)?.display_name ?? null,
             email: userMap.get(v.user_id as string)?.email ?? '',
+            avatar_url: userMap.get(v.user_id as string)?.avatar_url ?? null,
         }))
     }
 
@@ -508,6 +533,7 @@ function ClosedBreakdown({
                                             key={v.user_id}
                                             name={name}
                                             email={v.email}
+                                            avatarUrl={v.avatar_url}
                                             weight={v.vote_weight}
                                             highlight={isMe}
                                         />
@@ -525,11 +551,13 @@ function ClosedBreakdown({
 function VoterChip({
     name,
     email,
+    avatarUrl,
     weight,
     highlight,
 }: {
     name: string
     email: string
+    avatarUrl: string | null
     weight: number
     highlight: boolean
 }) {
@@ -544,7 +572,12 @@ function VoterChip({
                     'ring-2 ring-[color:var(--accent-brand)] ring-offset-1 ring-offset-[color:var(--surface-raised)]',
             )}
         >
-            <Avatar name={name === 'You' ? null : name} email={email} size={20} />
+            <Avatar
+                name={name === 'You' ? null : name}
+                email={email}
+                imageUrl={avatarUrl}
+                size={20}
+            />
             <span>{name}</span>
             <span className="font-mono tabular-nums text-[color:var(--text-secondary)]">
                 ({formatNum(weight)})

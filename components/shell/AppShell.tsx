@@ -9,6 +9,7 @@ type AppShellProps = {
         display_name: string | null
         email: string
         role: 'user' | 'admin'
+        avatar_url?: string | null
     }
     signOutAction: () => void | Promise<void>
     children: ReactNode
@@ -31,6 +32,7 @@ export function AppShell({
                     <AvatarMenu
                         displayName={user.display_name}
                         email={user.email}
+                        avatarUrl={user.avatar_url ?? null}
                         isAdmin={isAdmin}
                         signOutAction={signOutAction}
                     />
