@@ -1,120 +1,97 @@
 import type { Metadata } from 'next'
 import { PageHeader } from '@/components/shell/PageHeader'
-import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
-import { Checkbox } from '@/components/ui/Checkbox'
-import { Chip } from '@/components/ui/Chip'
-import { TextInput } from '@/components/ui/TextInput'
+import { Pagination } from '@/components/ui/Pagination'
+import { SearchInput } from '@/components/ui/SearchInput'
+import { TableCount } from '@/components/ui/TableToolbar'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { addRestaurant, updateRestaurant } from './actions'
+import { AddRestaurantModal } from './add-restaurant-modal'
+import {
+    RestaurantsTable,
+    type RestaurantRow,
+} from './restaurants-table'
+import { StatusFilter } from './status-filter'
 
 export const metadata: Metadata = { title: 'Restaurants · Admin' }
 
-export default async function RestaurantsPage() {
-    const admin = createAdminClient()
-    const { data: restaurants } = await admin
+const PAGE_SIZE = 20
+
+type SearchParams = Promise<{
+    q?: string
+    status?: string
+    page?: string
+}>
+
+export default async function RestaurantsPage({
+    searchParams,
+}: {
+    searchParams: SearchParams
+}) {
+    const params = await searchParams
+    const q = (params.q ?? '').trim()
+    const status =
+        params.status === 'active' || params.status === 'inactive'
+            ? params.status
+            : ''
+    const page = Math.max(1, Number(params.page) || 1)
+
+    const supabase = createAdminClient()
+    let query = supabase
         .from('restaurants')
-        .select('id, name, doordash_url, notes, is_active, created_at')
-        .order('created_at', { ascending: true })
+        .select('id, name, doordash_url, notes, is_active, created_at', {
+            count: 'exact',
+        })
+    if (q) query = query.ilike('name', `%${q}%`)
+    if (status === 'active') query = query.eq('is_active', true)
+    if (status === 'inactive') query = query.eq('is_active', false)
+
+    const { data, count } = await query
+        .order('name', { ascending: true })
+        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
+
+    const rows: RestaurantRow[] = (data ?? []).map((r) => ({
+        id: r.id as string,
+        name: r.name as string,
+        doordash_url: (r.doordash_url as string | null) ?? null,
+        notes: (r.notes as string | null) ?? null,
+        is_active: r.is_active as boolean,
+        created_at: r.created_at as string,
+    }))
+    const total = count ?? rows.length
 
     return (
         <>
             <PageHeader
                 title="Restaurants"
-                subtitle="Shared catalog. Add once here, then assign to one or more templates separately."
+                subtitle="Shared catalog. Add once, then assign to templates separately."
             />
 
-            <div className="space-y-6">
-                <Card>
-                    <h2 className="font-display font-medium text-[1rem] text-[color:var(--text-primary)] mb-3">
-                        Add restaurant
-                    </h2>
-                    <form action={addRestaurant} className="grid gap-2 md:grid-cols-[2fr_3fr_3fr_auto]">
-                        <TextInput
-                            name="name"
-                            required
-                            placeholder="Name"
-                        />
-                        <TextInput
-                            name="doordash_url"
-                            type="url"
-                            placeholder="DoorDash URL (optional)"
-                        />
-                        <TextInput
-                            name="notes"
-                            placeholder="Notes (optional)"
-                        />
-                        <Button type="submit" variant="primary">
-                            Add
-                        </Button>
-                    </form>
-                </Card>
+            <div className="space-y-4">
+                <RestaurantsTable
+                    rows={rows}
+                    leading={
+                        <>
+                            <div className="min-w-[200px] flex-1 md:max-w-[360px]">
+                                <SearchInput
+                                    placeholder="Search by name…"
+                                    resetParams={['page']}
+                                />
+                            </div>
+                            <StatusFilter value={status} />
+                        </>
+                    }
+                    trailing={
+                        <>
+                            <TableCount
+                                showing={rows.length}
+                                total={total}
+                                noun="restaurant"
+                            />
+                            <AddRestaurantModal />
+                        </>
+                    }
+                />
 
-                <h2 className="font-display font-medium text-[1rem] text-[color:var(--text-primary)]">
-                    Catalog · {restaurants?.length ?? 0}{' '}
-                    {restaurants?.length === 1 ? 'restaurant' : 'restaurants'}
-                </h2>
-
-                <ul className="space-y-3">
-                    {restaurants?.map((r) => (
-                        <li key={r.id}>
-                            <Card>
-                                <form
-                                    action={updateRestaurant}
-                                    className="grid gap-2 md:grid-cols-[2fr_3fr_3fr_auto_auto]"
-                                >
-                                    <input
-                                        type="hidden"
-                                        name="id"
-                                        value={r.id}
-                                    />
-                                    <TextInput
-                                        name="name"
-                                        defaultValue={r.name}
-                                        required
-                                        size="sm"
-                                    />
-                                    <TextInput
-                                        name="doordash_url"
-                                        defaultValue={r.doordash_url ?? ''}
-                                        placeholder="DoorDash URL"
-                                        size="sm"
-                                    />
-                                    <TextInput
-                                        name="notes"
-                                        defaultValue={r.notes ?? ''}
-                                        placeholder="Notes"
-                                        size="sm"
-                                    />
-                                    <label className="inline-flex items-center gap-2 text-[0.8125rem] cursor-pointer">
-                                        <Checkbox
-                                            name="is_active"
-                                            defaultChecked={r.is_active}
-                                            value="on"
-                                        />
-                                        Active
-                                        {!r.is_active && (
-                                            <Chip variant="neutral">
-                                                inactive
-                                            </Chip>
-                                        )}
-                                    </label>
-                                    <Button type="submit" size="sm">
-                                        Save
-                                    </Button>
-                                </form>
-                            </Card>
-                        </li>
-                    ))}
-                </ul>
-                <p className="text-[0.8125rem] text-[color:var(--text-secondary)]">
-                    Removing a restaurant is done by unchecking{' '}
-                    <code className="font-mono bg-[color:var(--surface-sunken)] px-1 rounded">
-                        Active
-                    </code>{' '}
-                    — banked credits users hold for it in any template are
-                    preserved.
-                </p>
+                <Pagination page={page} total={total} pageSize={PAGE_SIZE} />
             </div>
         </>
     )

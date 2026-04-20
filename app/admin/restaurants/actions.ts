@@ -38,4 +38,17 @@ export async function updateRestaurant(formData: FormData) {
         .update({ name, doordash_url, notes, is_active })
         .eq('id', id)
     revalidatePath('/admin/restaurants')
+    revalidatePath(`/admin/restaurants/${id}`)
+}
+
+export async function bulkSetActiveRestaurants(ids: string[], active: boolean) {
+    await requireAdmin()
+    if (ids.length === 0) return { updated: 0 }
+    const admin = createAdminClient()
+    await admin
+        .from('restaurants')
+        .update({ is_active: active })
+        .in('id', ids)
+    revalidatePath('/admin/restaurants')
+    return { updated: ids.length }
 }
