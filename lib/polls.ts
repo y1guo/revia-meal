@@ -79,21 +79,21 @@ export type TemplateRow = {
 }
 
 /**
- * Ensures today's poll exists for the given template and returns its id.
- * Returns null if:
- *   - template is inactive
- *   - today isn't in the template's days_of_week
+ * Returns today's poll id for the template — reusing an existing row or
+ * lazily creating one. Existing rows always win, even when the template's
+ * current schedule would not have instantiated one today. Display and
+ * voting key off poll rows, not off the template's current schedule.
+ *
+ * Returns null when:
  *   - an admin previously cancelled today's poll (don't auto-resurrect)
- *   - the schedule is invalid/incomplete
+ *   - no row exists yet AND the template is inactive or not scheduled today
+ *   - the schedule is invalid/incomplete at creation time
  */
 export async function ensureTodaysPoll(
     template: Pick<TemplateRow, 'id' | 'schedule' | 'is_active'>,
 ): Promise<string | null> {
-    if (!template.is_active) return null
-    if (!shouldRunToday(template.schedule)) return null
-
     const { timezone, opens_at_local, closes_at_local } = template.schedule
-    if (!timezone || !opens_at_local || !closes_at_local) return null
+    if (!timezone) return null
 
     const today = getLocalDateISO(timezone)
     const admin = createAdminClient()
@@ -109,6 +109,11 @@ export async function ensureTodaysPoll(
     if (active) return active.id
     // An admin previously cancelled today's poll — honor that.
     if (list.some((p) => p.cancelled_at)) return null
+
+    // No poll exists yet — creation is gated by the current schedule.
+    if (!template.is_active) return null
+    if (!shouldRunToday(template.schedule)) return null
+    if (!opens_at_local || !closes_at_local) return null
 
     const opens = fromZonedTime(`${today}T${opens_at_local}:00`, timezone)
     const closes = fromZonedTime(`${today}T${closes_at_local}:00`, timezone)
@@ -173,41 +178,67 @@ export type DashboardEntry = {
 }
 
 /**
- * Every active template that's scheduled to run today, with today's poll
- * (lazily instantiated if missing). Lazy-finalizes any pending_close polls
- * encountered. Filters out templates that cancelled today's poll or aren't
- * scheduled today.
+ * Every poll scheduled for today across all templates, driven by the poll
+ * rows themselves. For each active template whose current schedule includes
+ * today, a poll is lazily instantiated before the listing query. Any
+ * pre-existing open poll with today's `scheduled_date` is included too —
+ * even if the template is now inactive or its schedule no longer covers
+ * today — so schedule edits don't orphan a live poll.
+ *
+ * Cancelled polls are excluded. Pending-close polls are finalized first.
  */
 export async function getTodaysDashboard(): Promise<DashboardEntry[]> {
     const admin = createAdminClient()
     const { data } = await admin
         .from('poll_templates')
         .select('id, name, description, schedule, is_active')
-        .eq('is_active', true)
         .order('name')
 
     const templates = (data ?? []) as TemplateRow[]
     if (templates.length === 0) return []
 
-    const pollIds = await Promise.all(
-        templates.map((t) => ensureTodaysPoll(t)),
+    // Kick off creation for active, scheduled-today templates in parallel.
+    await Promise.all(
+        templates
+            .filter((t) => t.is_active && shouldRunToday(t.schedule))
+            .map((t) => ensureTodaysPoll(t)),
     )
 
-    const validPollIds = pollIds.filter((id): id is string => !!id)
-    if (validPollIds.length === 0) return []
+    // Query polls by (template, today-in-its-tz). Batch per timezone so
+    // multiple templates sharing a tz only need one round trip.
+    const templatesByTZ = new Map<string, TemplateRow[]>()
+    for (const t of templates) {
+        const tz = t.schedule?.timezone
+        if (!tz) continue
+        const bucket = templatesByTZ.get(tz) ?? []
+        bucket.push(t)
+        templatesByTZ.set(tz, bucket)
+    }
 
-    const { data: polls } = await admin
-        .from('polls')
-        .select(
-            'id, scheduled_date, opens_at, closes_at, finalized_at, cancelled_at, cancellation_reason',
+    const pollRows = (
+        await Promise.all(
+            Array.from(templatesByTZ.entries()).map(async ([tz, ts]) => {
+                const today = getLocalDateISO(tz)
+                const { data: rows } = await admin
+                    .from('polls')
+                    .select(
+                        'id, template_id, scheduled_date, opens_at, closes_at, finalized_at, cancelled_at, cancellation_reason',
+                    )
+                    .in(
+                        'template_id',
+                        ts.map((t) => t.id),
+                    )
+                    .eq('scheduled_date', today)
+                    .is('cancelled_at', null)
+                return rows ?? []
+            }),
         )
-        .in('id', validPollIds)
+    ).flat()
 
-    // Lazy-finalize any pending_close polls before composing the response.
-    // Apply finalize results locally — re-fetching gets stale data due to
-    // Next.js fetch deduplication within a single render.
-    const pollList = polls ?? []
-    const pending = pollList.filter(
+    // Lazy-finalize pending_close before composing the response. Apply
+    // results locally — re-fetching gets stale data due to Next.js fetch
+    // deduplication within a single render.
+    const pending = pollRows.filter(
         (p) => getPollStatus(p) === 'pending_close',
     )
     if (pending.length > 0) {
@@ -218,13 +249,13 @@ export async function getTodaysDashboard(): Promise<DashboardEntry[]> {
         )
         const now = new Date().toISOString()
         for (const { id, result } of results) {
-            const i = pollList.findIndex((x) => x.id === id)
+            const i = pollRows.findIndex((x) => x.id === id)
             if (i < 0) continue
             if (result.status === 'finalized') {
-                pollList[i] = { ...pollList[i], finalized_at: now }
+                pollRows[i] = { ...pollRows[i], finalized_at: now }
             } else if (result.status === 'cancelled') {
-                pollList[i] = {
-                    ...pollList[i],
+                pollRows[i] = {
+                    ...pollRows[i],
                     cancelled_at: now,
                     cancellation_reason: result.reason,
                 }
@@ -232,20 +263,21 @@ export async function getTodaysDashboard(): Promise<DashboardEntry[]> {
         }
     }
 
-    const pollMap = new Map(pollList.map((p) => [p.id, p]))
-
+    const templatesById = new Map(templates.map((t) => [t.id, t]))
     const entries: DashboardEntry[] = []
-    templates.forEach((template, i) => {
-        const pollId = pollIds[i]
-        if (!pollId) return
-        const poll = pollMap.get(pollId)
-        if (!poll) return
+    for (const poll of pollRows) {
+        // A pending_close poll can flip to cancelled (no_votes) above; skip
+        // those so the dashboard stays "live polls only".
+        if (poll.cancelled_at) continue
+        const template = templatesById.get(poll.template_id as string)
+        if (!template) continue
         entries.push({
             template,
             poll,
             status: getPollStatus(poll),
         })
-    })
+    }
+    entries.sort((a, b) => a.template.name.localeCompare(b.template.name))
     return entries
 }
 
