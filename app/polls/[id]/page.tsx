@@ -8,12 +8,12 @@ import { Avatar } from '@/components/ui/Avatar'
 import { SmartBackLink } from '@/components/ui/SmartBackLink'
 import { OverrideBanner, type OverrideEntry } from './override-banner'
 import { Card } from '@/components/ui/Card'
-import { Chip } from '@/components/ui/Chip'
 import { CountUp } from '@/components/ui/CountUp'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
 import { formatDateTime } from '@/lib/format-time'
+import type { RichContent } from '@/lib/rich-content'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { selectUsersWithAvatar } from '@/lib/users'
 import {
@@ -22,6 +22,7 @@ import {
     type PollStatus,
 } from '@/lib/polls'
 import VoteForm, { type Ballot } from './vote-form'
+import { BallotPreviewList } from './ballot-preview'
 
 type Params = Promise<{ id: string }>
 
@@ -43,6 +44,7 @@ type Restaurant = {
     name: string
     doordash_url: string | null
     notes: string | null
+    rich_content: RichContent | null
     disabled: boolean
 }
 
@@ -158,7 +160,7 @@ export default async function PollPage({ params }: { params: Params }) {
         restaurantIds.length > 0
             ? await admin
                   .from('restaurants')
-                  .select('id, name, doordash_url, notes')
+                  .select('id, name, doordash_url, notes, rich_content')
                   .in('id', restaurantIds)
             : {
                   data: [] as {
@@ -166,6 +168,7 @@ export default async function PollPage({ params }: { params: Params }) {
                       name: string
                       doordash_url: string | null
                       notes: string | null
+                      rich_content: RichContent | null
                   }[],
               }
     const restaurants: Restaurant[] = (rData ?? [])
@@ -174,6 +177,7 @@ export default async function PollPage({ params }: { params: Params }) {
             name: r.name as string,
             doordash_url: r.doordash_url as string | null,
             notes: r.notes as string | null,
+            rich_content: (r.rich_content as RichContent | null) ?? null,
             disabled: disabledByRestaurant.get(r.id as string) ?? false,
         }))
         .sort((a, b) => {
@@ -382,6 +386,7 @@ export default async function PollPage({ params }: { params: Params }) {
                                 name: r.name,
                                 notes: r.notes,
                                 doordash_url: r.doordash_url,
+                                rich_content: r.rich_content,
                                 disabled: r.disabled,
                             }),
                         )}
@@ -402,8 +407,15 @@ export default async function PollPage({ params }: { params: Params }) {
                         />
                     </>
                 ) : (
-                    <BallotPreview
-                        restaurants={restaurants}
+                    <BallotPreviewList
+                        restaurants={restaurants.map((r) => ({
+                            id: r.id,
+                            name: r.name,
+                            doordash_url: r.doordash_url,
+                            notes: r.notes,
+                            rich_content: r.rich_content,
+                            disabled: r.disabled,
+                        }))}
                         userPickIds={initialPicks}
                         showYouVoted={status === 'cancelled'}
                     />
@@ -426,54 +438,6 @@ function ConflictState({ templateName }: { templateName: string | null }) {
             <p className="text-[0.875rem] text-[color:var(--text-secondary)] max-w-[320px] mx-auto">
                 You can only participate in one poll per day.
             </p>
-        </Card>
-    )
-}
-
-function BallotPreview({
-    restaurants,
-    userPickIds,
-    showYouVoted,
-}: {
-    restaurants: Restaurant[]
-    userPickIds: string[]
-    showYouVoted: boolean
-}) {
-    const pickSet = new Set(userPickIds)
-    return (
-        <Card className="p-0 overflow-hidden">
-            <ul className="divide-y divide-[color:var(--border-subtle)]">
-                {restaurants.map((r) => {
-                    const voted = showYouVoted && pickSet.has(r.id)
-                    return (
-                        <li key={r.id} className="px-4 py-3 md:px-5 md:py-4">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-medium text-[color:var(--text-primary)]">
-                                    {r.name}
-                                </span>
-                                {voted && (
-                                    <Chip variant="neutral">you voted</Chip>
-                                )}
-                                {r.doordash_url && (
-                                    <a
-                                        href={r.doordash_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-[0.8125rem] font-medium text-[color:var(--link-fg)] hover:text-[color:var(--accent-brand)] transition-colors duration-150"
-                                    >
-                                        DoorDash ↗
-                                    </a>
-                                )}
-                            </div>
-                            {r.notes && (
-                                <p className="mt-1 text-[0.8125rem] text-[color:var(--text-secondary)]">
-                                    {r.notes}
-                                </p>
-                            )}
-                        </li>
-                    )
-                })}
-            </ul>
         </Card>
     )
 }

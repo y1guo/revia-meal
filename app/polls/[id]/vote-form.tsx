@@ -3,17 +3,20 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { BallotRow, BallotRowExpand } from '@/components/poll/BallotRow'
 import { BankedCreditChip } from '@/components/ui/BankedCreditChip'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { cn } from '@/lib/cn'
+import type { RichContent } from '@/lib/rich-content'
 
 export type Ballot = {
     id: string
     name: string
     notes: string | null
     doordash_url: string | null
+    rich_content: RichContent | null
     disabled: boolean
 }
 
@@ -42,6 +45,16 @@ export default function VoteForm({
     const [picks, setPicks] = useState<Set<string>>(new Set(initialPicks))
     const [status, setStatus] = useState<Status>('blank')
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [expanded, setExpanded] = useState<Set<string>>(new Set())
+
+    const toggleExpanded = (id: string) => {
+        setExpanded((prev) => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
 
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -216,83 +229,66 @@ export default function VoteForm({
                         // unchecked, the next render will see isChecked=false
                         // and lock it down.
                         const uninteractable = r.disabled && !isChecked
+                        const rowId = `ballot-row-${r.id}`
+                        const isExpanded = expanded.has(r.id)
                         return (
                             <li key={r.id}>
                                 <label
                                     className={cn(
-                                        'flex items-start gap-3',
-                                        'px-4 py-3 md:px-5 md:py-4',
-                                        'transition-colors duration-150',
+                                        'block transition-colors duration-150',
                                         uninteractable
                                             ? 'bg-[color:var(--surface-sunken)] cursor-not-allowed'
                                             : 'cursor-pointer hover:bg-[color:var(--surface-sunken)]',
                                     )}
                                 >
-                                    <Checkbox
-                                        checked={isChecked}
-                                        disabled={uninteractable}
-                                        className="mt-0.5"
-                                        onCheckedChange={(next) => {
-                                            togglePick(
-                                                r.id,
-                                                next === true,
-                                                r.disabled,
-                                            )
-                                        }}
+                                    <BallotRow
+                                        name={r.name}
+                                        doordashUrl={r.doordash_url}
+                                        notes={r.notes}
+                                        richContent={r.rich_content}
+                                        leading={
+                                            <Checkbox
+                                                checked={isChecked}
+                                                disabled={uninteractable}
+                                                onCheckedChange={(next) => {
+                                                    togglePick(
+                                                        r.id,
+                                                        next === true,
+                                                        r.disabled,
+                                                    )
+                                                }}
+                                            />
+                                        }
+                                        nameSuffix={
+                                            <>
+                                                {r.disabled && (
+                                                    <span className="inline-flex items-center rounded-[var(--radius-pill)] px-2 py-0.5 text-[0.6875rem] font-medium uppercase tracking-wide bg-[color:var(--surface-raised)] text-[color:var(--text-secondary)] border border-[color:var(--border-subtle)]">
+                                                        Removed
+                                                    </span>
+                                                )}
+                                                {banked > 0 && (
+                                                    <BankedCreditChip
+                                                        weight={banked}
+                                                        restaurantName={r.name}
+                                                    />
+                                                )}
+                                            </>
+                                        }
+                                        muted={r.disabled}
+                                        expanded={isExpanded}
+                                        onToggleExpanded={() =>
+                                            toggleExpanded(r.id)
+                                        }
+                                        rowId={rowId}
                                     />
-                                    <div className="min-w-0 flex-1 space-y-1">
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <span
-                                                className={cn(
-                                                    'font-medium',
-                                                    r.disabled
-                                                        ? 'text-[color:var(--text-tertiary)]'
-                                                        : 'text-[color:var(--text-primary)]',
-                                                )}
-                                            >
-                                                {r.name}
-                                            </span>
-                                            {r.disabled && (
-                                                <span className="inline-flex items-center rounded-[var(--radius-pill)] px-2 py-0.5 text-[0.6875rem] font-medium uppercase tracking-wide bg-[color:var(--surface-raised)] text-[color:var(--text-secondary)] border border-[color:var(--border-subtle)]">
-                                                    Removed
-                                                </span>
-                                            )}
-                                            {banked > 0 && (
-                                                <BankedCreditChip
-                                                    weight={banked}
-                                                    restaurantName={r.name}
-                                                />
-                                            )}
-                                        </div>
-                                        {r.doordash_url && (
-                                            <a
-                                                href={r.doordash_url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className={cn(
-                                                    'inline-block text-[0.8125rem] font-medium transition-colors duration-150',
-                                                    r.disabled
-                                                        ? 'text-[color:var(--text-tertiary)]'
-                                                        : 'text-[color:var(--link-fg)] hover:text-[color:var(--accent-brand)]',
-                                                )}
-                                            >
-                                                DoorDash ↗
-                                            </a>
-                                        )}
-                                        {r.notes && (
-                                            <p
-                                                className={cn(
-                                                    'text-[0.8125rem]',
-                                                    r.disabled
-                                                        ? 'text-[color:var(--text-tertiary)]'
-                                                        : 'text-[color:var(--text-secondary)]',
-                                                )}
-                                            >
-                                                {r.notes}
-                                            </p>
-                                        )}
-                                    </div>
                                 </label>
+                                {isExpanded && r.rich_content && (
+                                    <BallotRowExpand
+                                        richContent={r.rich_content}
+                                        notes={r.notes}
+                                        rowId={rowId}
+                                    />
+                                )}
                             </li>
                         )
                     })}

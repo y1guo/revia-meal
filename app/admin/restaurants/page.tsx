@@ -5,6 +5,7 @@ import { SearchInput } from '@/components/ui/SearchInput'
 import { TableCount } from '@/components/ui/TableToolbar'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { AddRestaurantModal } from './add-restaurant-modal'
+import { BookmarkletInstall } from './bookmarklet-install'
 import {
     RestaurantsTable,
     type RestaurantRow,
@@ -66,6 +67,7 @@ export default async function RestaurantsPage({
             />
 
             <div className="space-y-4">
+                <BookmarkletInstall />
                 <RestaurantsTable
                     rows={rows}
                     leading={

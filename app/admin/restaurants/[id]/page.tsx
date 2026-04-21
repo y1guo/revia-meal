@@ -6,8 +6,10 @@ import { Chip } from '@/components/ui/Chip'
 import { requireAdmin } from '@/lib/auth'
 import { formatDate } from '@/lib/format-time'
 import { createAdminClient } from '@/lib/supabase/admin'
+import type { RichContent } from '@/lib/rich-content'
 import { HoursEditor, type DayHours } from './hours-editor'
 import { RestaurantEditForm } from './restaurant-edit-form'
+import { RichContentCard } from './rich-content-card'
 
 type Params = Promise<{ id: string }>
 
@@ -24,7 +26,9 @@ export default async function RestaurantDetailPage({
     const [{ data }, { data: hoursData }] = await Promise.all([
         supabase
             .from('restaurants')
-            .select('id, name, doordash_url, notes, is_active, created_at')
+            .select(
+                'id, name, doordash_url, notes, is_active, created_at, rich_content',
+            )
             .eq('id', id)
             .maybeSingle(),
         supabase
@@ -41,6 +45,7 @@ export default async function RestaurantDetailPage({
         notes: string | null
         is_active: boolean
         created_at: string
+        rich_content: RichContent | null
     }
 
     // Postgres `time` values serialize as "HH:MM:SS"; the <input type="time">
@@ -98,6 +103,16 @@ export default async function RestaurantDetailPage({
                     unconfigured={!hasAnyRow}
                 />
             </div>
+
+            {r.rich_content && (
+                <div className="mt-6">
+                    <RichContentCard
+                        restaurantId={r.id}
+                        restaurantName={r.name}
+                        richContent={r.rich_content}
+                    />
+                </div>
+            )}
         </>
     )
 }
