@@ -7,15 +7,14 @@
   },
   "scripts": {
     "dev": "next dev",
-    "prebuild": "pnpm migrate",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "seed-admin": "tsx --env-file=.env.local scripts/seed-admin.ts",
     "seed-dev-data": "tsx --env-file=.env.local scripts/seed-dev-data.ts",
-    "migrate": "tsx --env-file-if-exists=.env.local scripts/migrate.ts",
-    "migrate:status": "tsx --env-file-if-exists=.env.local scripts/migrate.ts --status",
-    "migrate:baseline": "tsx --env-file-if-exists=.env.local scripts/migrate.ts --baseline"
+    "migrate": "tsx --env-file=.env.local scripts/migrate.ts",
+    "migrate:status": "tsx --env-file=.env.local scripts/migrate.ts --status",
+    "migrate:baseline": "tsx --env-file=.env.local scripts/migrate.ts --baseline"
   },
   "dependencies": {
     "@radix-ui/react-checkbox": "^1.3.3",
