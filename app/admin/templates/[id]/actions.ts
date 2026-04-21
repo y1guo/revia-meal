@@ -4,60 +4,67 @@ import { revalidatePath } from 'next/cache'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth'
 
-export async function updateTemplate(formData: FormData) {
+type SaveInput = {
+    id: string
+    name: string
+    description: string | null
+    is_active: boolean
+    schedule: {
+        days_of_week: number[]
+        opens_at_local: string
+        closes_at_local: string
+        timezone: string
+    }
+    restaurant_ids: string[]
+}
+
+/**
+ * Single save for the template edit page — updates the template row AND
+ * reconciles its restaurant assignments in one call. Replaces the older
+ * split updateTemplate / updateAssignments actions.
+ */
+export async function saveTemplate(input: SaveInput) {
     await requireAdmin()
-    const id = String(formData.get('id') ?? '')
-    const name = String(formData.get('name') ?? '').trim()
-    const description = String(formData.get('description') ?? '').trim() || null
-    const is_active = formData.get('is_active') === 'on'
+    const { id, name, description, is_active, schedule, restaurant_ids } = input
 
-    const days = formData
-        .getAll('days_of_week')
-        .map((d) => Number(d))
-        .filter((n) => n >= 1 && n <= 7)
-        .sort((a, b) => a - b)
-    const opens_at_local = String(formData.get('opens_at_local') ?? '10:00')
-    const closes_at_local = String(formData.get('closes_at_local') ?? '11:30')
-    const timezone =
-        String(formData.get('timezone') ?? 'America/Los_Angeles').trim() ||
-        'America/Los_Angeles'
-
-    if (!id || !name) return
+    if (!id || !name.trim()) {
+        throw new Error('Name is required.')
+    }
+    const TIME_RE = /^([01]\d|2[0-3]):([0-5]\d)$/
+    if (
+        !TIME_RE.test(schedule.opens_at_local) ||
+        !TIME_RE.test(schedule.closes_at_local)
+    ) {
+        throw new Error('Opens and closes times must be in HH:MM format.')
+    }
+    if (
+        !Array.isArray(schedule.days_of_week) ||
+        schedule.days_of_week.length === 0 ||
+        schedule.days_of_week.some((d) => !Number.isInteger(d) || d < 1 || d > 7)
+    ) {
+        throw new Error('Select at least one valid day of the week.')
+    }
 
     const admin = createAdminClient()
-    await admin
+
+    const { error: tplErr } = await admin
         .from('poll_templates')
         .update({
-            name,
-            description,
-            schedule: {
-                days_of_week: days,
-                opens_at_local,
-                closes_at_local,
-                timezone,
-            },
+            name: name.trim(),
+            description: description?.trim() || null,
+            schedule,
             is_active,
         })
         .eq('id', id)
+    if (tplErr) throw new Error(tplErr.message)
 
-    revalidatePath(`/admin/templates/${id}`)
-    revalidatePath('/admin/templates')
-}
-
-export async function updateAssignments(formData: FormData) {
-    await requireAdmin()
-    const templateId = String(formData.get('id') ?? '')
-    const selectedIds = new Set(formData.getAll('restaurant_ids').map(String))
-
-    if (!templateId) return
-
-    const admin = createAdminClient()
-
-    const { data: current } = await admin
+    const { data: current, error: readErr } = await admin
         .from('template_restaurants')
         .select('restaurant_id, is_active')
-        .eq('template_id', templateId)
+        .eq('template_id', id)
+    if (readErr) throw new Error(readErr.message)
 
+    const selected = new Set(restaurant_ids)
     const currentMap = new Map<string, boolean>(
         (current ?? []).map((a) => [a.restaurant_id, a.is_active]),
     )
@@ -70,36 +77,44 @@ export async function updateAssignments(formData: FormData) {
     const toActivate: string[] = []
     const toDeactivate: string[] = []
 
-    for (const rid of selectedIds) {
+    for (const rid of selected) {
         if (!currentMap.has(rid)) {
-            toInsert.push({ template_id: templateId, restaurant_id: rid, is_active: true })
+            toInsert.push({
+                template_id: id,
+                restaurant_id: rid,
+                is_active: true,
+            })
         } else if (!currentMap.get(rid)) {
             toActivate.push(rid)
         }
     }
-    for (const [rid, isActive] of currentMap) {
-        if (isActive && !selectedIds.has(rid)) {
-            toDeactivate.push(rid)
-        }
+    for (const [rid, wasActive] of currentMap) {
+        if (wasActive && !selected.has(rid)) toDeactivate.push(rid)
     }
 
     if (toInsert.length) {
-        await admin.from('template_restaurants').insert(toInsert)
+        const { error } = await admin
+            .from('template_restaurants')
+            .insert(toInsert)
+        if (error) throw new Error(error.message)
     }
     if (toActivate.length) {
-        await admin
+        const { error } = await admin
             .from('template_restaurants')
             .update({ is_active: true })
-            .eq('template_id', templateId)
+            .eq('template_id', id)
             .in('restaurant_id', toActivate)
+        if (error) throw new Error(error.message)
     }
     if (toDeactivate.length) {
-        await admin
+        const { error } = await admin
             .from('template_restaurants')
             .update({ is_active: false })
-            .eq('template_id', templateId)
+            .eq('template_id', id)
             .in('restaurant_id', toDeactivate)
+        if (error) throw new Error(error.message)
     }
 
-    revalidatePath(`/admin/templates/${templateId}`)
+    revalidatePath(`/admin/templates/${id}`)
+    revalidatePath('/admin/templates')
 }
