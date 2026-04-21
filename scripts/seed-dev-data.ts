@@ -3,15 +3,26 @@
  * a second Happy Hour template, and ~60 weekdays of historical polls with
  * plausible vote patterns and the banked-credit ledger kept consistent.
  *
+ * Also seeds enough variety to exercise the newer schema features:
+ *   - restaurant_hours rows on 4 restaurants (some closed on certain weekdays)
+ *   - rich_content blobs on 3 restaurants (avatar + cover + menu thumbnails)
+ *   - poll_options.disabled_at on 2 historical polls (soft-disabled options)
+ *   - poll_overrides rows on 2 historical polls (admin-overridden winners)
+ *
  * Idempotent for entities looked up by natural key (email / name). Historical
  * polls are only inserted for (template, date) pairs that don't already have
- * a poll, so re-running will fill in gaps rather than duplicate.
+ * a poll, so re-running will fill in gaps rather than duplicate. The feature-
+ * exercising additions above assume a mostly-clean DB — they'll no-op or
+ * duplicate cleanly on upserts but may double-apply on the override / disable
+ * passes if you run against a DB that already has history. Run them against a
+ * freshly baselined environment for clean output.
  *
  * Usage: pnpm seed-dev-data
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { fromZonedTime } from 'date-fns-tz'
 import { randomUUID } from 'node:crypto'
+import type { RichContent } from '@/lib/rich-content'
 
 type UserRow = {
     id: string
@@ -128,15 +139,173 @@ function datesBack(days: number): string[] {
     return out
 }
 
-type InsertedPoll = {
-    id: string
-    template_id: string
-    scheduled_date: string
-    opens_at: string
-    closes_at: string
-    status: 'finalized' | 'cancelled_admin' | 'cancelled_no_votes'
-    winner_id: string | null
-    cancelled_by: string | null
+/**
+ * Give a handful of restaurants non-default weekly open hours so the poll
+ * instantiation filter (ensureTodaysPoll → restaurant_hours) has something
+ * to exercise. Restaurants not in this map fall back to the "unconfigured =
+ * open every day" sentinel, so the bulk of historical polls are unaffected.
+ */
+const HOURS_BY_NAME: Record<
+    string,
+    { day_of_week: number; opens_at: string | null; closes_at: string | null }[]
+> = {
+    "Joe's Pizza": [
+        // Mon–Sat 11:00–22:00; closed Sunday (no row).
+        { day_of_week: 1, opens_at: '11:00', closes_at: '22:00' },
+        { day_of_week: 2, opens_at: '11:00', closes_at: '22:00' },
+        { day_of_week: 3, opens_at: '11:00', closes_at: '22:00' },
+        { day_of_week: 4, opens_at: '11:00', closes_at: '22:00' },
+        { day_of_week: 5, opens_at: '11:00', closes_at: '22:00' },
+        { day_of_week: 6, opens_at: '11:00', closes_at: '22:00' },
+    ],
+    'Mensho Tokyo': [
+        // Weekdays only.
+        { day_of_week: 1, opens_at: '11:30', closes_at: '14:30' },
+        { day_of_week: 2, opens_at: '11:30', closes_at: '14:30' },
+        { day_of_week: 3, opens_at: '11:30', closes_at: '14:30' },
+        { day_of_week: 4, opens_at: '11:30', closes_at: '14:30' },
+        { day_of_week: 5, opens_at: '11:30', closes_at: '14:30' },
+    ],
+    'Hook Fish Co.': [
+        // Mon–Sat, shorter closing time.
+        { day_of_week: 1, opens_at: '10:00', closes_at: '17:00' },
+        { day_of_week: 2, opens_at: '10:00', closes_at: '17:00' },
+        { day_of_week: 3, opens_at: '10:00', closes_at: '17:00' },
+        { day_of_week: 4, opens_at: '10:00', closes_at: '17:00' },
+        { day_of_week: 5, opens_at: '10:00', closes_at: '17:00' },
+        { day_of_week: 6, opens_at: '10:00', closes_at: '17:00' },
+    ],
+    'Rintaro Izakaya': [
+        // Tue–Sun only (closed Monday); dinner-only.
+        { day_of_week: 2, opens_at: '17:00', closes_at: '22:00' },
+        { day_of_week: 3, opens_at: '17:00', closes_at: '22:00' },
+        { day_of_week: 4, opens_at: '17:00', closes_at: '22:00' },
+        { day_of_week: 5, opens_at: '17:00', closes_at: '22:00' },
+        { day_of_week: 6, opens_at: '17:00', closes_at: '22:00' },
+        { day_of_week: 7, opens_at: '17:00', closes_at: '22:00' },
+    ],
+}
+
+async function seedRestaurantHours(
+    supabase: SupabaseClient,
+    restaurants: RestaurantRow[],
+): Promise<void> {
+    const byName = new Map(restaurants.map((r) => [r.name, r.id]))
+    const rows: {
+        restaurant_id: string
+        day_of_week: number
+        opens_at: string | null
+        closes_at: string | null
+    }[] = []
+    for (const [name, days] of Object.entries(HOURS_BY_NAME)) {
+        const id = byName.get(name)
+        if (!id) continue
+        for (const d of days) {
+            rows.push({ restaurant_id: id, ...d })
+        }
+    }
+    if (rows.length === 0) return
+    const { error } = await supabase
+        .from('restaurant_hours')
+        .upsert(rows, {
+            onConflict: 'restaurant_id,day_of_week',
+            ignoreDuplicates: true,
+        })
+    if (error) throw new Error(`restaurant_hours: ${error.message}`)
+}
+
+/**
+ * Synthetic DoorDash-shape rich_content for a few restaurants so the ballot
+ * row's rich rendering path (avatars, cover images, menu thumbnails) has
+ * something to show in dev. Images come from picsum.photos keyed on a stable
+ * seed so they're deterministic-ish across runs.
+ */
+function richContentFor(
+    name: string,
+    cuisines: string[],
+    address: string,
+    menu: { name: string; description: string; price: string }[],
+): RichContent {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    return {
+        version: 1,
+        source: 'doordash',
+        source_url: `https://www.doordash.com/store/${slug}-dev-seed/000000/`,
+        fetched_at: new Date().toISOString(),
+        cuisines,
+        price_range: '$$',
+        rating: {
+            value: Math.round((4.2 + Math.random() * 0.7) * 10) / 10,
+            ratings_count_display: '1k+',
+            reviews_count_display: '120+',
+        },
+        avatar_image_url: `https://picsum.photos/seed/${slug}-avatar/160/160`,
+        cover_image_url: `https://picsum.photos/seed/${slug}-cover/1000/300`,
+        hero_image_url: `https://picsum.photos/seed/${slug}-cover/1000/300`,
+        address,
+        menu_items: menu.map((m, i) => ({
+            name: m.name,
+            description: m.description,
+            price: m.price,
+            image_url: `https://picsum.photos/seed/${slug}-item-${i}/200/200`,
+        })),
+        hours: null,
+    }
+}
+
+const RICH_CONTENT_BY_NAME: Record<string, RichContent> = {
+    "Joe's Pizza": richContentFor(
+        "Joe's Pizza",
+        ['Pizza', 'Italian'],
+        '412 Market St, San Francisco, CA',
+        [
+            { name: 'Plain Slice', description: 'Cheese slice, the classic.', price: '$4.50' },
+            { name: 'Pepperoni Slice', description: 'Cup-and-char style.', price: '$5.25' },
+            { name: 'Sicilian Square', description: 'Thick crust, well done.', price: '$5.50' },
+            { name: 'Meatball Hero', description: 'House meatballs on a torpedo roll.', price: '$12.00' },
+            { name: 'Garlic Knots (6)', description: 'Buttery, with marinara.', price: '$5.00' },
+        ],
+    ),
+    'Marufuku Ramen': richContentFor(
+        'Marufuku Ramen',
+        ['Japanese', 'Ramen'],
+        '1581 Webster St Ste 235, San Francisco, CA',
+        [
+            { name: 'Hakata Tonkotsu', description: '36-hour pork bone broth, chashu, ajitama.', price: '$18.50' },
+            { name: 'Black Garlic Tonkotsu', description: 'Roasted garlic oil drizzle.', price: '$19.50' },
+            { name: 'Spicy Tonkotsu', description: 'Chili oil, ground pork, bean sprouts.', price: '$19.95' },
+            { name: 'Karaage', description: 'Japanese fried chicken, 5 pieces.', price: '$9.50' },
+            { name: 'Gyoza (6)', description: 'Pan-seared pork dumplings.', price: '$8.50' },
+        ],
+    ),
+    'Farmhouse Thai': richContentFor(
+        'Farmhouse Thai',
+        ['Thai'],
+        '710 Valencia St, San Francisco, CA',
+        [
+            { name: 'Khao Soi', description: 'Northern Thai curry noodles with chicken.', price: '$19.00' },
+            { name: 'Crying Tiger Steak', description: 'Grilled ribeye, jaew dipping sauce.', price: '$26.00' },
+            { name: 'Pad See Ew', description: 'Wide noodles, broccoli, egg, your protein.', price: '$17.00' },
+            { name: 'Som Tum', description: 'Green papaya salad, medium spice.', price: '$12.00' },
+            { name: 'Mango Sticky Rice', description: 'Seasonal; ask when it’s ripe.', price: '$10.00' },
+        ],
+    ),
+}
+
+async function seedRichContent(
+    supabase: SupabaseClient,
+    restaurants: RestaurantRow[],
+): Promise<void> {
+    const byName = new Map(restaurants.map((r) => [r.name, r.id]))
+    for (const [name, rc] of Object.entries(RICH_CONTENT_BY_NAME)) {
+        const id = byName.get(name)
+        if (!id) continue
+        const { error } = await supabase
+            .from('restaurants')
+            .update({ rich_content: rc })
+            .eq('id', id)
+        if (error) throw new Error(`rich_content (${name}): ${error.message}`)
+    }
 }
 
 type VoteRecord = {
@@ -474,22 +643,28 @@ async function main() {
     const users = await fetchOrInsertUsers(supabase)
     console.log(`   ${users.length} users total`)
 
-    console.log('2/7 restaurants…')
+    console.log('2/9 restaurants…')
     const restaurants = await fetchOrInsertRestaurants(supabase)
     console.log(`   ${restaurants.length} restaurants total`)
 
-    console.log('3/7 templates…')
+    console.log('3/9 restaurant weekly hours (subset)…')
+    await seedRestaurantHours(supabase, restaurants)
+
+    console.log('4/9 rich_content for a few restaurants…')
+    await seedRichContent(supabase, restaurants)
+
+    console.log('5/9 templates…')
     const templates = await fetchOrInsertTemplates(supabase)
     console.log(`   templates: ${templates.map((t) => t.name).join(', ')}`)
 
-    console.log('4/7 template assignments…')
+    console.log('6/9 template assignments…')
     const ballotByTemplate = await ensureTemplateRestaurants(
         supabase,
         templates,
         restaurants,
     )
 
-    console.log('5/7 planning historical polls…')
+    console.log('7/9 planning historical polls…')
     const { data: existingPolls } = await supabase
         .from('polls')
         .select('template_id, scheduled_date')
@@ -539,7 +714,7 @@ async function main() {
     }
     console.log(`   will insert ${plans.length} polls`)
 
-    console.log('6/7 simulating votes and finalize…')
+    console.log('8/9 simulating votes and finalize…')
     const ctx = buildSimContext(users, restaurants)
 
     const pollRows: {
@@ -754,7 +929,7 @@ async function main() {
         `   generated: ${pollRows.length} polls, ${allVotes.length} votes, ${pollResultRows.length} result rows`,
     )
 
-    console.log('7/7 writing to db…')
+    console.log('9/9 writing to db…')
     await chunkInsert(supabase, 'polls', pollRows, 200)
     await chunkInsert(supabase, 'poll_options', pollOptionRows, 500)
     await chunkInsert(supabase, 'votes', allVotes, 500)
@@ -768,6 +943,87 @@ async function main() {
     })
     await chunkInsert(supabase, 'daily_participation', uniqPart, 500)
     await chunkInsert(supabase, 'poll_results', pollResultRows, 500)
+
+    // Post-insert: exercise two schema features that don't fit cleanly into
+    // the main simulation loop — soft-disabled ballot options and overridden
+    // poll winners. Both target a small slice of historical polls so the UI
+    // has something to render without swamping the dataset.
+
+    const finalizedPolls = pollRows
+        .filter((p) => p.finalized_at !== null && p.winner_id !== null)
+        .sort((a, b) =>
+            (b.finalized_at ?? '').localeCompare(a.finalized_at ?? ''),
+        )
+
+    // Pick two finalized polls: on each, soft-disable a single ballot option
+    // that WASN'T the winner (disabling the winner would violate the UI
+    // invariants finalizePoll enforces).
+    const disableTargets = finalizedPolls.slice(0, 2)
+    for (const p of disableTargets) {
+        const options = pollOptionRows.filter((o) => o.poll_id === p.id)
+        const candidate = options.find(
+            (o) => o.restaurant_id !== p.winner_id,
+        )
+        if (!candidate) continue
+        // Disable roughly in the middle of the open window so it looks like
+        // a mid-poll admin edit.
+        const disabledAt = new Date(
+            (new Date(p.opens_at).getTime() + new Date(p.closes_at).getTime()) /
+                2,
+        ).toISOString()
+        const { error } = await supabase
+            .from('poll_options')
+            .update({ disabled_at: disabledAt })
+            .eq('poll_id', candidate.poll_id)
+            .eq('restaurant_id', candidate.restaurant_id)
+        if (error) throw new Error(`poll_options.disabled_at: ${error.message}`)
+    }
+
+    // Pick two other finalized polls: override the winner to a different
+    // ballot option. Bumps polls.winner_id and writes a poll_overrides audit
+    // row each time.
+    const overrideTargets = finalizedPolls.slice(2, 4)
+    const overrideRows: {
+        poll_id: string
+        overridden_at: string
+        overridden_by: string | null
+        old_winner_id: string
+        new_winner_id: string
+        reason: string
+    }[] = []
+    for (const p of overrideTargets) {
+        if (!p.winner_id) continue
+        const options = pollOptionRows.filter((o) => o.poll_id === p.id)
+        const newWinner = options.find(
+            (o) => o.restaurant_id !== p.winner_id,
+        )
+        if (!newWinner) continue
+        const overriddenAt = new Date(
+            new Date(p.finalized_at ?? p.closes_at).getTime() + 30 * 60 * 1000,
+        ).toISOString()
+        overrideRows.push({
+            poll_id: p.id,
+            overridden_at: overriddenAt,
+            overridden_by: adminId,
+            old_winner_id: p.winner_id,
+            new_winner_id: newWinner.restaurant_id,
+            reason: 'Boss announced the pick — overriding the tallied winner.',
+        })
+        const { error: upErr } = await supabase
+            .from('polls')
+            .update({ winner_id: newWinner.restaurant_id })
+            .eq('id', p.id)
+        if (upErr) throw new Error(`poll winner override: ${upErr.message}`)
+    }
+    if (overrideRows.length > 0) {
+        const { error } = await supabase
+            .from('poll_overrides')
+            .insert(overrideRows)
+        if (error) throw new Error(`poll_overrides: ${error.message}`)
+    }
+    console.log(
+        `   disabled ${disableTargets.length} option(s), overrode ${overrideRows.length} winner(s)`,
+    )
 
     console.log('done.')
 }
