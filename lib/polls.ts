@@ -505,12 +505,15 @@ export async function finalizePoll(pollId: string): Promise<FinalizeResult> {
 
     if (!claimed) return { status: 'noop' }
 
-    // Exercise the winner's contributing credits.
+    // Exercise the winner's contributing credits. Votes from cancelled polls
+    // are deliberately inert — never counted in a tally, never shown in a
+    // bank — so they must not be consumed here either. Excluding them keeps
+    // the exercise symmetric with the banking/tally reads above.
     const winnerVoters = Array.from(
         todayByRestaurant.get(winner.restaurant_id)?.keys() ?? [],
     )
     if (winnerVoters.length > 0) {
-        await admin
+        let exerciseQuery = admin
             .from('votes')
             .update({
                 exercised_at: new Date().toISOString(),
@@ -520,6 +523,14 @@ export async function finalizePoll(pollId: string): Promise<FinalizeResult> {
             .eq('restaurant_id', winner.restaurant_id)
             .in('user_id', winnerVoters)
             .is('exercised_at', null)
+        if (cancelledPollIds.size > 0) {
+            exerciseQuery = exerciseQuery.not(
+                'poll_id',
+                'in',
+                `(${Array.from(cancelledPollIds).join(',')})`,
+            )
+        }
+        await exerciseQuery
     }
 
     return { status: 'finalized', winnerId: winner.restaurant_id }
@@ -669,7 +680,17 @@ export async function overridePollWinner(args: {
         new Set((voteRows ?? []).map((v) => v.user_id as string)),
     )
     if (voterIds.length > 0) {
-        await admin
+        // Mirror finalizePoll: never exercise credits parked in cancelled
+        // polls, which are inert and excluded from every banking/tally read.
+        const { data: cancelledPollRows } = await admin
+            .from('polls')
+            .select('id')
+            .eq('template_id', poll.template_id)
+            .not('cancelled_at', 'is', null)
+        const cancelledPollIds = (cancelledPollRows ?? []).map(
+            (p) => p.id as string,
+        )
+        let exerciseQuery = admin
             .from('votes')
             .update({
                 exercised_at: new Date().toISOString(),
@@ -679,6 +700,14 @@ export async function overridePollWinner(args: {
             .eq('restaurant_id', newWinnerId)
             .in('user_id', voterIds)
             .is('exercised_at', null)
+        if (cancelledPollIds.length > 0) {
+            exerciseQuery = exerciseQuery.not(
+                'poll_id',
+                'in',
+                `(${cancelledPollIds.join(',')})`,
+            )
+        }
+        await exerciseQuery
     }
 
     await admin.from('poll_overrides').insert({
