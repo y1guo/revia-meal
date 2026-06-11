@@ -46,15 +46,17 @@ export function initialsOf(
 
 // Brand-tinted palette for fallback avatars. Same family as
 // restaurant-colors.ts but lifted one step so initials stay readable.
+// Vivid full-spectrum trim set (violet / cyan / emerald / amber / rose /
+// orange), matching the reference palette. Bright bg + dark ink reads best.
 const AVATAR_PALETTE = [
-    { bg: '#1EA8C4', fg: '#FFFFFF' }, // boba-500
-    { bg: '#70C855', fg: '#0F2E16' }, // lime-600
-    { bg: '#E0B445', fg: '#2E2408' }, // sunny-600
-    { bg: '#66D7EC', fg: '#0B3E4A' }, // boba-300
-    { bg: '#F66B60', fg: '#FFFFFF' }, // danger-400
-    { bg: '#FFB960', fg: '#3B2712' }, // warning-400
-    { bg: '#8FA0A2', fg: '#FFFFFF' }, // slate-400
-    { bg: '#B48A2C', fg: '#FFFFFF' }, // sunny-700 / bronze
+    { bg: '#A78BFA', fg: '#271046' }, // violet
+    { bg: '#22D3EE', fg: '#0C2E39' }, // cyan
+    { bg: '#34D399', fg: '#043528' }, // emerald
+    { bg: '#FBBF24', fg: '#3A2606' }, // amber
+    { bg: '#FB7185', fg: '#4C0519' }, // rose
+    { bg: '#FB923C', fg: '#431407' }, // orange
+    { bg: '#818CF8', fg: '#1E1B4B' }, // indigo
+    { bg: '#F0ABFC', fg: '#4A044E' }, // fuchsia
 ] as const
 
 function hashString(s: string): number {

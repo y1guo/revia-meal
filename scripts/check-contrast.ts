@@ -42,65 +42,65 @@ function contrast(a: Rgb, b: Rgb): number {
     return (hi + 0.05) / (lo + 0.05)
 }
 
-// ---------- palette (Boba / Lime / Sunny refresh) ----------
+// ---------- palette (Aurora — violet & emerald on ink) ----------
 const LIGHT = {
     // surfaces
-    'surface-base': hexToRgb('#E6F8FA'), // frost-50
-    'surface-raised': hexToRgb('#F6FFFA'), // mint-50
-    'surface-sunken': hexToRgb('#E3F3EA'), // mint-100
+    'surface-base': hexToRgb('#FAFAFC'), // cloud-50 (neutral near-white)
+    'surface-raised': hexToRgb('#FFFFFF'), // cloud-0
+    'surface-sunken': hexToRgb('#ECECF0'), // slate-100
 
     // text
-    'text-primary': hexToRgb('#2E3A3C'), // slate-700
-    'text-secondary': hexToRgb('#4E5A5C'), // slate-600 (derived for AA)
-    'text-tertiary': hexToRgb('#6C7A7B'), // slate-500 (owner's grey; tertiary slot)
-    'text-on-accent': hexToRgb('#1F2A2C'), // slate-800
+    'text-primary': hexToRgb('#1F232C'), // slate-800 (near-black)
+    'text-secondary': hexToRgb('#4B5160'), // slate-600 (derived for AA)
+    'text-tertiary': hexToRgb('#6B7280'), // slate-500
+    'text-on-accent': hexToRgb('#FFFFFF'), // white on violet
 
     // brand + interaction
-    'accent-brand': hexToRgb('#33C5E0'), // boba-400
-    'accent-brand-hover': hexToRgb('#1EA8C4'), // boba-500
-    'link-fg': hexToRgb('#0F6E85'), // boba-700
-    'focus-ring': hexToRgb('#0F6E85'),
+    'accent-brand': hexToRgb('#7C3AED'), // violet-400
+    'accent-brand-hover': hexToRgb('#6D28D9'), // violet-500
+    'link-fg': hexToRgb('#5B21B6'), // violet-600
+    'focus-ring': hexToRgb('#7C3AED'), // violet-400
 
     // danger foregrounds for button/chip
-    'danger-500': hexToRgb('#F44336'),
-    'danger-600': hexToRgb('#D32F2F'),
+    'danger-500': hexToRgb('#F43F5E'),
+    'danger-600': hexToRgb('#C81E4A'),
 
     // status foregrounds (darker variants pass AA on tinted bg)
-    'status-scheduled-fg': hexToRgb('#2E3A3C'),
-    'status-open-fg': hexToRgb('#3A6A28'), // lime-800
-    'status-pending-fg': hexToRgb('#80611A'), // sunny-800
-    'status-closed-fg': hexToRgb('#0F6E85'), // boba-700
-    'status-cancelled-fg': hexToRgb('#A5291F'), // danger-700
+    'status-scheduled-fg': hexToRgb('#1F232C'), // slate-800
+    'status-open-fg': hexToRgb('#086045'), // emerald-700
+    'status-pending-fg': hexToRgb('#8A5200'), // dark amber
+    'status-closed-fg': hexToRgb('#5B21B6'), // violet-600
+    'status-cancelled-fg': hexToRgb('#A3173C'), // danger-700 (rose)
 
     // banked
-    'banked-fg': hexToRgb('#80611A'), // sunny-800
+    'banked-fg': hexToRgb('#115E72'), // cyan-700
 } as const
 
 const DARK = {
-    'surface-base': hexToRgb('#0E1618'), // teal-950 (deepened dark base)
-    'surface-raised': hexToRgb('#2A3C41'), // teal-800
-    'surface-sunken': hexToRgb('#1D2D31'), // teal-900
+    'surface-base': hexToRgb('#0D0D0D'), // ink-950 (near-black)
+    'surface-raised': hexToRgb('#1C1C20'), // ink-800
+    'surface-sunken': hexToRgb('#151518'), // ink-900
 
-    'text-primary': hexToRgb('#F8FAFB'), // slate-50
-    'text-secondary': hexToRgb('#C8D1D3'), // slate-300
-    'text-tertiary': hexToRgb('#8FA0A2'), // slate-400
-    'text-on-accent': hexToRgb('#1F2A2C'), // slate-800 on boba-300
+    'text-primary': hexToRgb('#F6F7F9'), // slate-50
+    'text-secondary': hexToRgb('#C2C4CD'), // slate-300
+    'text-tertiary': hexToRgb('#9398A4'), // slate-400
+    'text-on-accent': hexToRgb('#0D0D0D'), // ink-950 on bright violet
 
-    'accent-brand': hexToRgb('#66D7EC'), // boba-300
-    'accent-brand-hover': hexToRgb('#7EDCF0'),
-    'link-fg': hexToRgb('#66D7EC'),
-    'focus-ring': hexToRgb('#66D7EC'),
+    'accent-brand': hexToRgb('#A78BFA'), // violet-300
+    'accent-brand-hover': hexToRgb('#B9A4FC'),
+    'link-fg': hexToRgb('#A78BFA'),
+    'focus-ring': hexToRgb('#A78BFA'),
 
-    'danger-500': hexToRgb('#F44336'),
-    'danger-600': hexToRgb('#D32F2F'),
+    'danger-500': hexToRgb('#F43F5E'),
+    'danger-600': hexToRgb('#C81E4A'),
 
-    'status-scheduled-fg': hexToRgb('#C8D1D3'), // slate-300
-    'status-open-fg': hexToRgb('#A9F095'), // lime-400
-    'status-pending-fg': hexToRgb('#FFE082'), // sunny-400
-    'status-closed-fg': hexToRgb('#66D7EC'), // boba-300
-    'status-cancelled-fg': hexToRgb('#FBB6AF'), // danger-300 — pale pink for AA on tinted dark bg
+    'status-scheduled-fg': hexToRgb('#C2C4CD'), // slate-300
+    'status-open-fg': hexToRgb('#34D399'), // emerald-300
+    'status-pending-fg': hexToRgb('#FBBF24'), // warning-400 (amber)
+    'status-closed-fg': hexToRgb('#A78BFA'), // violet-300
+    'status-cancelled-fg': hexToRgb('#FDA4AF'), // danger-300 — pale rose for AA on tinted dark bg
 
-    'banked-fg': hexToRgb('#FFE082'), // sunny-400
+    'banked-fg': hexToRgb('#22D3EE'), // cyan-300
 } as const
 
 // Status backgrounds are rgba on top of surface-base/raised. Flatten against
@@ -113,21 +113,21 @@ function statusBgDark(rgba: { r: number; g: number; b: number; a: number }) {
 }
 
 const LIGHT_STATUS_BGS = {
-    'status-scheduled-bg': { r: 108, g: 122, b: 123, a: 0.14 }, // slate-500
-    'status-open-bg': { r: 143, g: 232, b: 121, a: 0.22 },
-    'status-pending-bg': { r: 255, g: 210, b: 94, a: 0.24 },
-    'status-closed-bg': { r: 51, g: 197, b: 224, a: 0.16 },
-    'status-cancelled-bg': { r: 244, g: 67, b: 54, a: 0.12 },
-    'banked-bg': { r: 255, g: 210, b: 94, a: 0.22 },
+    'status-scheduled-bg': { r: 107, g: 114, b: 128, a: 0.14 }, // slate-500
+    'status-open-bg': { r: 16, g: 185, b: 129, a: 0.18 }, // emerald-400
+    'status-pending-bg': { r: 245, g: 158, b: 11, a: 0.2 }, // amber
+    'status-closed-bg': { r: 124, g: 58, b: 237, a: 0.14 }, // violet-400
+    'status-cancelled-bg': { r: 244, g: 63, b: 94, a: 0.12 }, // danger-500 (rose)
+    'banked-bg': { r: 6, g: 182, b: 212, a: 0.18 }, // cyan-400
 } as const
 
 const DARK_STATUS_BGS = {
-    'status-scheduled-bg': { r: 200, g: 209, b: 211, a: 0.14 },
-    'status-open-bg': { r: 169, g: 240, b: 149, a: 0.18 },
-    'status-pending-bg': { r: 255, g: 224, b: 130, a: 0.18 },
-    'status-closed-bg': { r: 102, g: 215, b: 236, a: 0.18 },
-    'status-cancelled-bg': { r: 246, g: 107, b: 96, a: 0.16 },
-    'banked-bg': { r: 255, g: 224, b: 130, a: 0.16 },
+    'status-scheduled-bg': { r: 194, g: 196, b: 205, a: 0.14 }, // slate-300
+    'status-open-bg': { r: 52, g: 211, b: 153, a: 0.18 }, // emerald-300
+    'status-pending-bg': { r: 251, g: 191, b: 36, a: 0.18 }, // warning-400 (amber)
+    'status-closed-bg': { r: 167, g: 139, b: 250, a: 0.18 }, // violet-300
+    'status-cancelled-bg': { r: 251, g: 113, b: 133, a: 0.16 }, // danger (rose)
+    'banked-bg': { r: 34, g: 211, b: 238, a: 0.16 }, // cyan-300
 } as const
 
 // ---------- checks ----------

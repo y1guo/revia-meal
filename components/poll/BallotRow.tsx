@@ -115,12 +115,14 @@ export function BallotRow({
 }
 
 type BallotRowExpandProps = {
+    name: string
     richContent: RichContent
     notes: string | null
     rowId: string
 }
 
 export function BallotRowExpand({
+    name,
     richContent,
     notes,
     rowId,
@@ -142,7 +144,7 @@ export function BallotRowExpand({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                         src={richContent.hero_image_url}
-                        alt=""
+                        alt={`${name} restaurant photo`}
                         loading="lazy"
                         referrerPolicy="no-referrer"
                         className="w-full max-h-[200px] object-cover rounded-[var(--radius-md)]"
@@ -179,7 +181,7 @@ export function BallotRowExpand({
                                     // eslint-disable-next-line @next/next/no-img-element
                                     <img
                                         src={item.image_url}
-                                        alt=""
+                                        alt={item.name}
                                         loading="lazy"
                                         referrerPolicy="no-referrer"
                                         className="shrink-0 w-12 h-12 rounded-[var(--radius-sm)] object-cover bg-[color:var(--surface-raised)]"

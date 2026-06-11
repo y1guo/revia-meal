@@ -1,6 +1,53 @@
-# Palette refresh — Boba / Lime / Sunny
+# Palette — Aurora (current)
 
-Supersedes the "Fresh Market" cream/espresso/saffron palette described in [direction.md §1–2](direction.md) and the raw scale in [tokens.md §1](tokens.md). Typography, spacing, radii, motion, and layout are unchanged — this is a **palette swap only**, driven by the new brand color set from the product owner.
+> **This is the current palette.** It supersedes "Midnight & Gold" (too blue), "Sunset Kitchen"
+> (too brown), **Boba / Lime / Sunny** (below), and "Fresh Market" before that. Aurora is a
+> high-contrast, dark-first scheme inspired by a terminal-style portfolio aesthetic — **violet**
+> primary, **emerald** secondary, **cyan** highlight, on **neutral near-black** (`#0D0D0D`) in
+> dark mode (with a subtle violet glow) and neutral near-white surfaces in light mode. Headings
+> can use the `.text-gradient-brand` ink→violet→cyan gradient. Single sans family (Geist Sans);
+> Geist Mono retained for numbers (Fraunces serif dropped).
+>
+> **Source of truth for exact ramps:** [app/globals.css](../../app/globals.css) `@theme`
+> block + [scripts/check-contrast.ts](../../scripts/check-contrast.ts) (44/44 WCAG AA pairs).
+> The historical sections below are kept for rationale; the token *structure*
+> (surface/text/brand/status/banked semantic tokens, the text-secondary→tertiary remap,
+> the danger-600 destructive button) is unchanged — only hues and the heading typeface shifted.
+
+## 0. Aurora token map
+
+### Core brand
+| Role | Hex (light) | Hex (dark) | Scale |
+| :--- | :--- | :--- | :--- |
+| Primary — Violet | `#7C3AED` (violet-400) | `#A78BFA` (violet-300) | `--color-violet-*` |
+| Secondary — Emerald | `#0D9C6E` (emerald-500) | `#34D399` (emerald-300) | `--color-emerald-*` |
+| Highlight — Cyan | `#06B6D4` (cyan-400) | `#22D3EE` (cyan-300) | `--color-cyan-*` |
+| Neutrals — Slate (gray) | `#1F232C` ink → `#6B7280` | `#F6F7F9` → `#9398A4` | `--color-slate-*` |
+
+### Surfaces
+| Token | Light | Dark |
+| :--- | :--- | :--- |
+| `--surface-base` | `#FAFAFC` cloud-50 | `#0D0D0D` ink-950 (page bg adds a subtle violet radial glow) |
+| `--surface-raised` | `#FFFFFF` cloud-0 | `#1C1C20` ink-800 |
+| `--surface-sunken` | `#ECECF0` slate-100 | `#151518` ink-900 |
+
+### Brand + interaction / status
+- `--accent-brand` = violet-400 / violet-300. `--text-on-accent` = **white** in light (on violet),
+  **ink-950 `#0D0D0D`** in dark (dark ink on bright violet) — both clear 4.5:1.
+- `--link-fg` = violet-600 (light) / violet-300 (dark); `--focus-ring` = violet-400 (light) / violet-300 (dark).
+- Status hues: scheduled→slate, open→**emerald**, pending→**amber** (warning scale), closed→**violet**,
+  cancelled→danger. Banked credit → **cyan** (treasure/highlight).
+
+### Typography
+- `--font-display` is an **alias of `--font-sans`** (Geist Sans). Headings earn hierarchy
+  through weight/size/tracking, not a serif typeface. `--font-mono` (Geist Mono) unchanged.
+- `.text-gradient-brand` (in globals.css) renders the ink→violet→cyan gradient heading used on `/login`.
+
+---
+
+# Palette refresh — Boba / Lime / Sunny (historical)
+
+Superseded the "Fresh Market" cream/espresso/saffron palette described in [direction.md §1–2](direction.md) and the raw scale in [tokens.md §1](tokens.md). Was a **palette swap only**, driven by a brand color set from the product owner.
 
 The rest of this doc translates that brand color set into code-ready tokens, a11y-safe foregrounds, and a concrete file-by-file implementation plan.
 

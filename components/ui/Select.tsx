@@ -25,8 +25,8 @@ type SelectProps = {
 }
 
 const SIZE: Record<SelectSize, string> = {
-    sm: 'h-8 text-[0.8125rem] px-2.5',
-    md: 'h-10 text-[0.875rem] px-3',
+    sm: 'h-9 text-[0.8125rem] px-2.5',
+    md: 'h-11 text-[0.875rem] px-3',
     lg: 'h-12 text-[1rem] px-4',
 }
 

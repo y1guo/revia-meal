@@ -70,6 +70,7 @@ export function BallotPreviewList({
                             />
                             {isExpanded && r.rich_content && (
                                 <BallotRowExpand
+                                    name={r.name}
                                     richContent={r.rich_content}
                                     notes={r.notes}
                                     rowId={rowId}

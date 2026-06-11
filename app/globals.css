@@ -2,77 +2,86 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-    /* ---------- Raw color scale (Boba / Lime / Sunny) ---------- */
+    /* ---------- Raw color scale (Aurora — violet & emerald on ink) ---------- */
 
-    /* Boba — primary brand blue */
-    --color-boba-50: #e6f8fa;
-    --color-boba-100: #cceef4;
-    --color-boba-200: #99daea;
-    --color-boba-300: #66d7ec; /* dark-mode primary */
-    --color-boba-400: #33c5e0; /* light-mode primary */
-    --color-boba-500: #1ea8c4;
-    --color-boba-600: #148ba6;
-    --color-boba-700: #0f6e85; /* a11y: link + focus on pale bg */
-    --color-boba-800: #0b5566;
-    --color-boba-900: #073d4a;
+    /* Violet — primary brand */
+    --color-violet-50: #f4f0fe;
+    --color-violet-100: #e8defd;
+    --color-violet-200: #d0bdfb;
+    --color-violet-300: #a78bfa; /* dark-mode primary (dark ink sits on it) */
+    --color-violet-400: #7c3aed; /* light-mode primary (white sits on it) */
+    --color-violet-500: #6d28d9; /* hover (light) */
+    --color-violet-600: #5b21b6; /* a11y: link on white/cloud */
+    --color-violet-700: #4c1d95;
+    --color-violet-800: #3b1570;
+    --color-violet-900: #271046;
 
-    /* Lime — secondary brand green */
-    --color-lime-300: #bdefae;
-    --color-lime-400: #a9f095; /* dark-mode secondary */
-    --color-lime-500: #8fe879; /* primary lime */
-    --color-lime-600: #70c855;
-    --color-lime-700: #548f3f;
-    --color-lime-800: #3a6a28; /* a11y: status-open-fg in light mode */
-    --color-lime-900: #1f4016;
+    /* Cyan — accent + banked credit (highlight) */
+    --color-cyan-50: #e6fbff;
+    --color-cyan-100: #c2f4fd;
+    --color-cyan-200: #88e9fa;
+    --color-cyan-300: #22d3ee; /* dark-mode accent + banked-fg */
+    --color-cyan-400: #06b6d4; /* light-mode accent */
+    --color-cyan-500: #0894b0;
+    --color-cyan-600: #0b7a93;
+    --color-cyan-700: #115e72; /* a11y: banked-fg in light mode */
+    --color-cyan-800: #134656;
+    --color-cyan-900: #0c2e39;
 
-    /* Sunny — accent + banked credit */
-    --color-sunny-300: #ffe79a;
-    --color-sunny-400: #ffe082; /* dark-mode accent */
-    --color-sunny-500: #ffd25e; /* light-mode accent */
-    --color-sunny-600: #e0b445;
-    --color-sunny-700: #b48a2c;
-    --color-sunny-800: #80611a; /* a11y: banked-fg + status-pending-fg */
-    --color-sunny-900: #4d3a0e;
+    /* Emerald — secondary pop (open / success) */
+    --color-emerald-50: #e7faf3;
+    --color-emerald-100: #c7f3e3;
+    --color-emerald-200: #8fe7c8;
+    --color-emerald-300: #34d399; /* dark-mode secondary + status-open-fg */
+    --color-emerald-400: #10b981;
+    --color-emerald-500: #0d9c6e; /* primary emerald */
+    --color-emerald-600: #0a7d58;
+    --color-emerald-700: #086045; /* a11y: status-open-fg in light mode */
+    --color-emerald-800: #064e38;
+    --color-emerald-900: #043528;
 
-    /* Slate — neutrals with teal undertone */
-    --color-slate-50: #f8fafb; /* dark-mode text-primary */
-    --color-slate-100: #edf2f3;
-    --color-slate-200: #dde4e5;
-    --color-slate-300: #c8d1d3; /* dark-mode text-secondary */
-    --color-slate-400: #8fa0a2;
-    --color-slate-500: #6c7a7b; /* owner spec; we remap to text-tertiary */
-    --color-slate-600: #4e5a5c; /* a11y: text-secondary in light mode */
-    --color-slate-700: #2e3a3c; /* light-mode text-primary */
-    --color-slate-800: #1f2a2c; /* text-on-accent */
-    --color-slate-900: #141e20;
+    /* Slate — neutral grays */
+    --color-slate-50: #f6f7f9; /* dark-mode text-primary */
+    --color-slate-100: #ececf0; /* light-mode sunken */
+    --color-slate-200: #dcdde3;
+    --color-slate-300: #c2c4cd; /* dark-mode text-secondary */
+    --color-slate-400: #9398a4; /* dark-mode text-tertiary */
+    --color-slate-500: #6b7280; /* text-tertiary in light mode */
+    --color-slate-600: #4b5160; /* a11y: text-secondary in light mode */
+    --color-slate-700: #353a45;
+    --color-slate-800: #1f232c; /* light-mode text-primary (near-black) */
+    --color-slate-900: #11141a;
 
     /* Background surfaces */
-    --color-frost-50: #e6f8fa; /* light-mode page background */
-    --color-mint-50: #f6fffa; /* light-mode raised surface */
-    --color-mint-100: #e3f3ea; /* light-mode sunken */
-    --color-teal-700: #243337;
-    --color-teal-800: #2a3c41; /* dark raised */
-    --color-teal-900: #1d2d31; /* dark sunken */
-    --color-teal-950: #0e1618; /* dark base (deeper than owner spec for a more restful night mode) */
+    --color-cloud-50: #fafafc; /* light-mode page background (neutral near-white) */
+    --color-cloud-0: #ffffff; /* light-mode raised surface */
+    --color-ink-700: #2a2a2e;
+    --color-ink-800: #1c1c20; /* dark raised */
+    --color-ink-900: #151518; /* dark sunken */
+    --color-ink-950: #0d0d0d; /* dark base (near-black, matches reference) */
 
     /* Semantic status scales */
     --color-success-400: #7dc983;
     --color-success-500: #4caf50;
     --color-success-700: #2e7a32;
 
-    --color-warning-400: #ffb960;
-    --color-warning-500: #ff9800;
-    --color-warning-700: #b36200;
+    --color-warning-400: #fbbf24; /* amber (matches reference trim) */
+    --color-warning-500: #f59e0b;
+    --color-warning-700: #b45309;
 
-    --color-danger-300: #fbb6af;
-    --color-danger-400: #f66b60;
-    --color-danger-500: #f44336;
-    --color-danger-600: #d32f2f; /* destructive button bg — AA with white */
-    --color-danger-700: #a5291f;
+    /* Danger — vivid rose/crimson (matches reference trim) */
+    --color-danger-300: #fda4af;
+    --color-danger-400: #fb7185;
+    --color-danger-500: #f43f5e;
+    --color-danger-600: #c81e4a; /* destructive button bg — AA with white */
+    --color-danger-700: #a3173c;
 
     /* ---------- Typography ---------- */
-    --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+    /* Single sans family across the app; headings earn hierarchy through
+       weight/size/tracking, not a separate typeface. --font-display is kept
+       as an alias so the ~26 `font-display` usages don't need touching. */
     --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    --font-display: var(--font-sans);
     --font-mono: var(--font-geist-mono), ui-monospace, Menlo, monospace;
 
     /* ---------- Spacing additions (defaults cover most) ---------- */
@@ -84,10 +93,10 @@
     --radius-lg: 14px;
     --radius-pill: 999px;
 
-    /* ---------- Shadows (light mode values — tuned to new slate tone) ---------- */
-    --shadow-sm: 0 1px 2px rgba(20, 30, 32, 0.06);
-    --shadow-md: 0 8px 24px rgba(20, 30, 32, 0.08);
-    --shadow-lg: 0 16px 48px rgba(20, 30, 32, 0.12);
+    /* ---------- Shadows (light mode values — neutral ink tone) ---------- */
+    --shadow-sm: 0 1px 2px rgba(17, 20, 26, 0.08);
+    --shadow-md: 0 8px 24px rgba(17, 20, 26, 0.12);
+    --shadow-lg: 0 16px 48px rgba(17, 20, 26, 0.16);
 
     /* ---------- Motion ---------- */
     --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
@@ -96,81 +105,96 @@
 
 /* ---------- Semantic tokens — light mode ---------- */
 :root {
-    --surface-base: var(--color-frost-50);
-    --surface-raised: var(--color-mint-50);
-    --surface-sunken: var(--color-mint-100);
-    --border-subtle: #c9e2e7;
+    --surface-base: var(--color-cloud-50);
+    --surface-raised: var(--color-cloud-0);
+    --surface-sunken: var(--color-slate-100);
+    --border-subtle: #e4e4ea;
     --border-strong: var(--color-slate-400);
 
-    --text-primary: var(--color-slate-700);
+    --text-primary: var(--color-slate-800);
     --text-secondary: var(--color-slate-600);
     --text-tertiary: var(--color-slate-500);
-    /* Dark text on boba/sunny for AA contrast. */
-    --text-on-accent: var(--color-slate-800);
-    /* Darker boba for inline link text on pale backgrounds. */
-    --link-fg: var(--color-boba-700);
-    /* Same darker boba for focus ring — passes 3:1 on pale surfaces. */
-    --focus-ring: var(--color-boba-700);
+    /* White on violet for AA contrast. */
+    --text-on-accent: #ffffff;
+    /* Deep violet for inline link text on near-white. */
+    --link-fg: var(--color-violet-600);
+    /* Violet-400 focus ring — passes 3:1 on cloud + white. */
+    --focus-ring: var(--color-violet-400);
 
-    --accent-brand: var(--color-boba-400);
-    --accent-brand-hover: var(--color-boba-500);
+    --accent-brand: var(--color-violet-400);
+    --accent-brand-hover: var(--color-violet-500);
 
-    --status-scheduled-bg: rgba(108, 122, 123, 0.14);
-    --status-scheduled-fg: var(--color-slate-700);
-    --status-open-bg: rgba(143, 232, 121, 0.22);
-    --status-open-fg: var(--color-lime-800);
-    --status-pending-bg: rgba(255, 210, 94, 0.24);
-    --status-pending-fg: var(--color-sunny-800);
-    --status-closed-bg: rgba(51, 197, 224, 0.16);
-    --status-closed-fg: var(--color-boba-700);
-    --status-cancelled-bg: rgba(244, 67, 54, 0.12);
+    --status-scheduled-bg: rgba(107, 114, 128, 0.14);
+    --status-scheduled-fg: var(--color-slate-800);
+    --status-open-bg: rgba(16, 185, 129, 0.18);
+    --status-open-fg: var(--color-emerald-700);
+    --status-pending-bg: rgba(245, 158, 11, 0.2);
+    --status-pending-fg: #8a5200; /* dark amber — AA on amber tint */
+    --status-closed-bg: rgba(124, 58, 237, 0.14);
+    --status-closed-fg: var(--color-violet-600);
+    --status-cancelled-bg: rgba(244, 63, 94, 0.12);
     --status-cancelled-fg: var(--color-danger-700);
 
-    --banked-bg: rgba(255, 210, 94, 0.22);
-    --banked-fg: var(--color-sunny-800);
+    --banked-bg: rgba(6, 182, 212, 0.18);
+    --banked-fg: var(--color-cyan-700);
 
     --shadow-card-rest: var(--shadow-sm);
     --shadow-card-hover: var(--shadow-md);
     --shadow-modal: var(--shadow-lg);
+
+    /* Interactive choice cards (hover / selected) + lift */
+    --choice-hover-bg: rgba(124, 58, 237, 0.05);
+    --choice-selected-bg: rgba(124, 58, 237, 0.11);
+    --choice-selected-ring: rgba(124, 58, 237, 0.22);
+    --shadow-card-lift:
+        0 10px 28px rgba(17, 20, 26, 0.14), 0 0 0 1px rgba(124, 58, 237, 0.3);
 }
 
 /* ---------- Semantic tokens — dark mode ---------- */
 .dark {
-    --surface-base: var(--color-teal-950);
-    --surface-raised: var(--color-teal-800);
-    --surface-sunken: var(--color-teal-900);
-    --border-subtle: rgba(248, 250, 251, 0.08);
-    --border-strong: rgba(248, 250, 251, 0.24);
+    --surface-base: var(--color-ink-950);
+    --surface-raised: var(--color-ink-800);
+    --surface-sunken: var(--color-ink-900);
+    --border-subtle: rgba(246, 247, 249, 0.1);
+    --border-strong: rgba(246, 247, 249, 0.26);
 
     --text-primary: var(--color-slate-50);
     --text-secondary: var(--color-slate-300);
     --text-tertiary: var(--color-slate-400);
-    --text-on-accent: var(--color-slate-800);
-    /* Brighter boba for links/focus-ring on deep teal surface. */
-    --link-fg: var(--color-boba-300);
-    --focus-ring: var(--color-boba-300);
+    /* Near-black ink on bright violet for AA contrast. */
+    --text-on-accent: var(--color-ink-950);
+    /* Brighter violet for links/focus-ring on ink surface. */
+    --link-fg: var(--color-violet-300);
+    --focus-ring: var(--color-violet-300);
 
-    --accent-brand: var(--color-boba-300);
-    --accent-brand-hover: #7edcf0;
+    --accent-brand: var(--color-violet-300);
+    --accent-brand-hover: #b9a4fc;
 
-    --status-scheduled-bg: rgba(200, 209, 211, 0.14);
+    --status-scheduled-bg: rgba(194, 196, 205, 0.14);
     --status-scheduled-fg: var(--color-slate-300);
-    --status-open-bg: rgba(169, 240, 149, 0.18);
-    --status-open-fg: var(--color-lime-400);
-    --status-pending-bg: rgba(255, 224, 130, 0.18);
-    --status-pending-fg: var(--color-sunny-400);
-    --status-closed-bg: rgba(102, 215, 236, 0.18);
-    --status-closed-fg: var(--color-boba-300);
-    --status-cancelled-bg: rgba(246, 107, 96, 0.16);
+    --status-open-bg: rgba(52, 211, 153, 0.18);
+    --status-open-fg: var(--color-emerald-300);
+    --status-pending-bg: rgba(251, 191, 36, 0.18);
+    --status-pending-fg: var(--color-warning-400);
+    --status-closed-bg: rgba(167, 139, 250, 0.18);
+    --status-closed-fg: var(--color-violet-300);
+    --status-cancelled-bg: rgba(251, 113, 133, 0.16);
     --status-cancelled-fg: var(--color-danger-300);
 
-    --banked-bg: rgba(255, 224, 130, 0.16);
-    --banked-fg: var(--color-sunny-400);
+    --banked-bg: rgba(34, 211, 238, 0.16);
+    --banked-fg: var(--color-cyan-300);
 
-    --shadow-card-rest: 0 0 0 1px rgba(248, 250, 251, 0.08);
-    --shadow-card-hover: 0 0 0 1px rgba(248, 250, 251, 0.14);
+    --shadow-card-rest: 0 0 0 1px rgba(246, 247, 249, 0.08);
+    --shadow-card-hover: 0 0 0 1px rgba(246, 247, 249, 0.14);
     --shadow-modal:
-        0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(248, 250, 251, 0.08);
+        0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(246, 247, 249, 0.08);
+
+    /* Interactive choice cards (hover / selected) + lift */
+    --choice-hover-bg: rgba(167, 139, 250, 0.07);
+    --choice-selected-bg: rgba(167, 139, 250, 0.14);
+    --choice-selected-ring: rgba(167, 139, 250, 0.3);
+    --shadow-card-lift:
+        0 10px 28px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(167, 139, 250, 0.4);
 }
 
 /* ---------- Base element defaults ---------- */
@@ -188,7 +212,38 @@ body {
     font-feature-settings: "ss01", "cv11";
 }
 
-/* Focus ring — mode-aware boba via --focus-ring. */
+/* Dark mode: near-black page with a subtle violet glow at the top. Components
+   keep reading the solid --surface-base token; only the page backdrop is graded. */
+.dark body {
+    background: radial-gradient(120% 75% at 50% -10%, #17132a 0%, #0d0d0d 55%)
+        fixed;
+}
+
+/* Aurora gradient heading: primary ink → violet → cyan, à la the reference. */
+.text-gradient-brand {
+    background: linear-gradient(
+        135deg,
+        var(--text-primary) 0%,
+        var(--color-violet-400) 55%,
+        var(--color-cyan-400) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.dark .text-gradient-brand {
+    background: linear-gradient(
+        135deg,
+        #ffffff 0%,
+        var(--color-violet-300) 55%,
+        var(--color-cyan-300) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+/* Focus ring — mode-aware violet via --focus-ring. */
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
@@ -228,6 +283,26 @@ body {
 
 .animate-scale-pop {
     animation: scale-pop 600ms var(--ease-out-quart) both;
+}
+
+/* Checkbox tick — springs in when checked. */
+@keyframes check-pop {
+    0% {
+        transform: scale(0.4);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(1.15);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.animate-check-pop {
+    animation: check-pop 220ms var(--ease-out-quart) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
