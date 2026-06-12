@@ -89,7 +89,7 @@ export function SearchInput({
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
                 className={cn(
-                    'block w-full h-10',
+                    'block w-full h-11',
                     'pl-9 pr-9',
                     'bg-[color:var(--surface-raised)]',
                     'border border-[color:var(--border-subtle)]',

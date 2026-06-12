@@ -87,6 +87,7 @@ export function ImportForm({ decoded, prefill }: Props) {
                     />
                     {expanded && (
                         <BallotRowExpand
+                            name={name || decoded.name}
                             richContent={decoded.rich_content}
                             notes={notes || null}
                             rowId="import-preview-row"

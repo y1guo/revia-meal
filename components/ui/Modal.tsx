@@ -52,7 +52,7 @@ export function Modal({
                             aria-label="Close"
                             className={cn(
                                 'absolute right-3 top-3',
-                                'inline-flex h-8 w-8 items-center justify-center',
+                                'inline-flex h-9 w-9 items-center justify-center',
                                 'rounded-[var(--radius-md)]',
                                 'text-[color:var(--text-secondary)] hover:text-[color:var(--text-primary)]',
                                 'hover:bg-[color:var(--surface-sunken)]',
@@ -80,7 +80,7 @@ export function ModalIcon({
     const toneStyles =
         tone === 'destructive'
             ? 'bg-danger-500/12 text-danger-700 dark:text-danger-400'
-            : 'bg-boba-500/14 text-boba-700 dark:text-boba-300'
+            : 'bg-violet-500/14 text-violet-600 dark:text-violet-300'
     return (
         <div
             className={cn(

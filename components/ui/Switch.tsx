@@ -12,6 +12,8 @@ export function Switch({ className, ...rest }: SwitchProps) {
             className={cn(
                 'relative inline-flex shrink-0 items-center',
                 'h-[22px] w-[40px] rounded-full',
+                // Invisible 44px-tall hit area for easier tapping (no layout shift).
+                "before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-full before:min-w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']",
                 'bg-[color:var(--surface-sunken)]',
                 'transition-colors duration-150',
                 'data-[state=checked]:bg-[color:var(--accent-brand)]',

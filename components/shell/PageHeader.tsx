@@ -23,7 +23,7 @@ export function PageHeader({
             )}
         >
             <div className="space-y-1">
-                <h1 className="font-display font-semibold tracking-tight text-[1.25rem] md:text-[1.5rem] text-[color:var(--text-primary)]">
+                <h1 className="font-display font-semibold tracking-tight text-[1.25rem] md:text-[1.5rem] text-gradient-brand">
                     {title}
                 </h1>
                 {subtitle && (

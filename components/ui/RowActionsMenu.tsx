@@ -22,7 +22,7 @@ export function RowActionsMenu({
             <DropdownMenu.Trigger
                 aria-label={label}
                 className={cn(
-                    'inline-flex h-8 w-8 items-center justify-center',
+                    'inline-flex h-9 w-9 items-center justify-center',
                     'rounded-full',
                     'text-[color:var(--text-secondary)]',
                     // Always visible on touch devices; fade in on hover for desktop.

@@ -55,6 +55,14 @@ export default async function Home() {
     )
 }
 
+const STATUS_ACCENT: Record<PollStatus, string> = {
+    scheduled: 'var(--status-scheduled-fg)',
+    open: 'var(--status-open-fg)',
+    pending_close: 'var(--status-pending-fg)',
+    closed: 'var(--status-closed-fg)',
+    cancelled: 'var(--status-cancelled-fg)',
+}
+
 function PollCard({ entry, index }: { entry: PollEntry; index: number }) {
     const { template, poll, status } = entry
     return (
@@ -65,7 +73,8 @@ function PollCard({ entry, index }: { entry: PollEntry; index: number }) {
         >
             <Card
                 interactive
-                className="h-full flex flex-col gap-2"
+                className="h-full flex flex-col gap-2 border-l-[3px]"
+                style={{ borderLeftColor: STATUS_ACCENT[status] }}
             >
                 <div className="flex items-start justify-between gap-3">
                     <h3 className="font-display font-medium text-[1.125rem] text-[color:var(--text-primary)]">

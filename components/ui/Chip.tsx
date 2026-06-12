@@ -21,7 +21,7 @@ type ChipProps = {
 const VARIANT: Record<ChipVariant, string> = {
     neutral:
         'bg-[color:var(--surface-sunken)] text-[color:var(--text-primary)]',
-    accent: 'bg-boba-500/12 text-boba-700 dark:text-boba-300',
+    accent: 'bg-violet-500/12 text-violet-600 dark:text-violet-300',
     success:
         'bg-[color:var(--status-open-bg)] text-[color:var(--status-open-fg)]',
     info: 'bg-[color:var(--status-closed-bg)] text-[color:var(--status-closed-fg)]',

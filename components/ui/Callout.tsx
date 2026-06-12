@@ -19,13 +19,13 @@ const TONES: Record<CalloutTone, { icon: LucideIcon; bar: string; iconColor: str
     },
     tip: {
         icon: Lightbulb,
-        bar: 'bg-lime-600 dark:bg-lime-400',
-        iconColor: 'text-lime-700 dark:text-lime-400',
+        bar: 'bg-emerald-500 dark:bg-emerald-400',
+        iconColor: 'text-emerald-700 dark:text-emerald-300',
     },
     warning: {
         icon: TriangleAlert,
-        bar: 'bg-sunny-600 dark:bg-sunny-400',
-        iconColor: 'text-sunny-800 dark:text-sunny-400',
+        bar: 'bg-warning-500 dark:bg-warning-400',
+        iconColor: 'text-warning-700 dark:text-warning-400',
     },
 }
 
