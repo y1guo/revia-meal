@@ -44,10 +44,9 @@ export function initialsOf(
     return '?'
 }
 
-// Brand-tinted palette for fallback avatars. Same family as
-// restaurant-colors.ts but lifted one step so initials stay readable.
-// Vivid full-spectrum trim set (violet / cyan / emerald / amber / rose /
-// orange), matching the reference palette. Bright bg + dark ink reads best.
+// Vivid full-spectrum trim set for fallback avatars (violet / cyan / emerald /
+// amber / rose / orange / indigo / fuchsia), matching the reference palette.
+// Bright bg + dark ink keeps initials readable.
 const AVATAR_PALETTE = [
     { bg: '#A78BFA', fg: '#271046' }, // violet
     { bg: '#22D3EE', fg: '#0C2E39' }, // cyan
