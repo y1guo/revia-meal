@@ -29,7 +29,7 @@ Two invariants worth surfacing here because they bite often:
 
 When in doubt, read the relevant section of the design brief first.
 
-The brand palette is **Boba / Lime / Sunny** — documented in [docs/design/palette-refresh.md](docs/design/palette-refresh.md). Components should read semantic CSS vars (`--surface-raised`, `--text-primary`, `--accent-brand`, `--link-fg`, `--focus-ring`, status/banked tokens) defined in [app/globals.css](app/globals.css) rather than raw palette utilities — that's what makes light/dark swap automatic. Run `pnpm exec tsx scripts/check-contrast.ts` after any palette change; 44/44 pairs must still pass WCAG AA.
+The brand palette is **Aurora** (violet / emerald / cyan) — documented in [docs/design/palette-refresh.md](docs/design/palette-refresh.md). Components should read semantic CSS vars (`--surface-raised`, `--text-primary`, `--accent-brand`, `--link-fg`, `--focus-ring`, status/banked tokens) defined in [app/globals.css](app/globals.css) rather than raw palette utilities — that's what makes light/dark swap automatic. Run `pnpm exec tsx scripts/check-contrast.ts` after any palette change; 44/44 pairs must still pass WCAG AA.
 
 # Screenshot size limits for the agent
 
