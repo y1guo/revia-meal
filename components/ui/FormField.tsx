@@ -1,3 +1,4 @@
+import { CircleAlert } from 'lucide-react'
 import { Children, cloneElement, isValidElement, type ReactNode } from 'react'
 import { cn } from '@/lib/cn'
 
@@ -68,9 +69,15 @@ export function FormField({
                 <p
                     id={errorId}
                     role="alert"
-                    className="text-[0.8125rem] text-danger-700 dark:text-danger-400"
+                    className="flex items-start gap-1.5 text-[0.8125rem] text-danger-700 dark:text-danger-400"
                 >
-                    {error}
+                    <CircleAlert
+                        size={14}
+                        strokeWidth={2}
+                        className="mt-0.5 shrink-0"
+                        aria-hidden="true"
+                    />
+                    <span>{error}</span>
                 </p>
             )}
         </div>

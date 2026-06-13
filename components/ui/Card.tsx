@@ -14,7 +14,7 @@ export function Card({ className, interactive, ...rest }: CardProps) {
                 'rounded-[var(--radius-lg)] shadow-[var(--shadow-card-rest)]',
                 'p-4 md:p-5',
                 interactive &&
-                    'transition-[transform,box-shadow] duration-150 hover:-translate-y-0.5 hover:shadow-[var(--shadow-card-hover)] motion-reduce:hover:translate-y-0',
+                    'transition-[transform,box-shadow] duration-200 ease-[var(--ease-out-quart)] hover:-translate-y-1 hover:shadow-[var(--shadow-card-lift)] motion-reduce:hover:translate-y-0',
                 className,
             )}
         />

@@ -58,7 +58,7 @@ export default function LoginForm({
                         className={cn(
                             'flex items-center justify-center',
                             'h-24 w-24 rounded-full mb-1',
-                            'bg-gradient-to-br from-[color:var(--accent-brand)]/20 to-[color:var(--accent-brand)]/5',
+                            'bg-gradient-to-br from-[color:var(--accent-brand)]/25 to-[color:var(--color-cyan-400)]/20',
                             'text-[color:var(--accent-brand)]',
                             'shadow-[var(--shadow-card-rest)]',
                         )}
@@ -75,7 +75,7 @@ export default function LoginForm({
                         height={73}
                         className="h-[52px] w-auto brightness-0 dark:brightness-100"
                     />
-                    <h1 className="font-display font-semibold tracking-tight text-[2rem] text-[color:var(--text-primary)]">
+                    <h1 className="font-display font-semibold tracking-tight text-[2rem] text-gradient-brand">
                         Meal
                     </h1>
                 </div>

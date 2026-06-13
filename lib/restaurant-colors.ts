@@ -1,24 +1,25 @@
 /**
  * Deterministic hash → palette color for flavor-bar segments on `/people`.
  *
- * Curated 12-hue spectrum derived from the Boba / Lime / Sunny brand with
- * analogous neighbors so adjacent segments still distinguish without clashing.
+ * Curated 12-hue spectrum in the Aurora family but kept deep and muted so the
+ * stacked flavor bars read calm (not neon) and white segment labels stay
+ * legible. Hues stay diverse so adjacent segments distinguish without clashing.
  * Ordering is stable; the hash picks an index.
  */
 
 const PALETTE = [
-    '#33C5E0', // boba-400 — primary teal-cyan
-    '#8FE879', // lime-500 — primary green
-    '#FFD25E', // sunny-500 — primary yellow
-    '#1EA8C4', // boba-500 — deeper teal
-    '#70C855', // lime-600 — deeper green
-    '#E0B445', // sunny-600 — deeper yellow
-    '#66D7EC', // boba-300 — bright cyan
-    '#A9F095', // lime-400 — mint
-    '#FFB960', // warning-400 — apricot
-    '#F66B60', // danger-400 — coral
-    '#8FA0A2', // slate-400 — cool neutral
-    '#B48A2C', // sunny-700 — bronze
+    '#5B3FA8', // muted violet
+    '#2D5F7A', // muted steel-cyan
+    '#1E7355', // muted emerald
+    '#8A6516', // muted ochre
+    '#A33D63', // muted rose
+    '#A8502A', // muted terracotta
+    '#45458F', // muted indigo
+    '#7E4290', // muted plum
+    '#1F6E6E', // muted teal
+    '#566E2C', // muted olive
+    '#3E5680', // muted slate-blue
+    '#84456B', // muted mauve
 ] as const
 
 function hashString(s: string): number {

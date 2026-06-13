@@ -235,10 +235,13 @@ export default function VoteForm({
                             <li key={r.id}>
                                 <label
                                     className={cn(
-                                        'block transition-colors duration-150',
-                                        uninteractable
-                                            ? 'bg-[color:var(--surface-sunken)] cursor-not-allowed'
-                                            : 'cursor-pointer hover:bg-[color:var(--surface-sunken)]',
+                                        'group block border-l-[3px]',
+                                        'transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[var(--ease-out-quart)]',
+                                        isChecked
+                                            ? 'cursor-pointer border-l-[color:var(--accent-brand)] bg-[color:var(--choice-selected-bg)] shadow-[inset_0_0_0_1px_var(--choice-selected-ring)]'
+                                            : uninteractable
+                                              ? 'cursor-not-allowed border-l-transparent bg-[color:var(--surface-sunken)]'
+                                              : 'cursor-pointer border-l-transparent hover:border-l-[color:var(--accent-brand)] hover:bg-[color:var(--choice-hover-bg)]',
                                     )}
                                 >
                                     <BallotRow
@@ -284,6 +287,7 @@ export default function VoteForm({
                                 </label>
                                 {isExpanded && r.rich_content && (
                                     <BallotRowExpand
+                                        name={r.name}
                                         richContent={r.rich_content}
                                         notes={r.notes}
                                         rowId={rowId}
