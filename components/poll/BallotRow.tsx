@@ -3,7 +3,14 @@
 import { ChevronDown, Star } from 'lucide-react'
 import { Fragment, type ReactNode } from 'react'
 import type { RichContent } from '@/lib/rich-content'
+import { formatDaysAgo } from '@/lib/format-time'
 import { cn } from '@/lib/cn'
+
+/** Global, all-time order history for a restaurant (won = ordered). */
+export type OrderStats = {
+    timesOrdered: number
+    lastOrderedDaysAgo: number | null
+}
 
 type BallotRowProps = {
     name: string
@@ -16,6 +23,8 @@ type BallotRowProps = {
     nameSuffix?: ReactNode
     /** Mutes colors for disabled/preview modes. */
     muted?: boolean
+    /** Order-history badges ("Ordered N×", "Last ordered …"); omitted when absent or zero. */
+    orderStats?: OrderStats
     expanded: boolean
     onToggleExpanded: () => void
     /** Stable id used for aria-controls linking to the expand panel. */
@@ -30,6 +39,7 @@ export function BallotRow({
     leading,
     nameSuffix,
     muted,
+    orderStats,
     expanded,
     onToggleExpanded,
     rowId,
@@ -102,6 +112,7 @@ export function BallotRow({
                         {notes}
                     </p>
                 )}
+                <OrderHistory orderStats={orderStats} muted={muted} />
             </div>
             {hasRich && (
                 <DetailsButton
@@ -240,6 +251,40 @@ function StarRating({ value }: { value: number }) {
             />
             <span className="font-mono tabular-nums">{value.toFixed(1)}</span>
         </span>
+    )
+}
+
+function OrderHistory({
+    orderStats,
+    muted,
+}: {
+    orderStats?: OrderStats
+    muted?: boolean
+}) {
+    if (!orderStats || orderStats.timesOrdered === 0) return null
+    const nodes: ReactNode[] = [
+        <span key="times" className="font-mono tabular-nums">
+            Ordered {orderStats.timesOrdered}×
+        </span>,
+    ]
+    if (orderStats.lastOrderedDaysAgo !== null) {
+        nodes.push(
+            <span key="last">
+                Last ordered {formatDaysAgo(orderStats.lastOrderedDaysAgo)}
+            </span>,
+        )
+    }
+    return (
+        <div
+            className={cn(
+                'flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[0.75rem]',
+                muted
+                    ? 'text-[color:var(--text-tertiary)]'
+                    : 'text-[color:var(--text-secondary)]',
+            )}
+        >
+            {interleaveDots(nodes)}
+        </div>
     )
 }
 
