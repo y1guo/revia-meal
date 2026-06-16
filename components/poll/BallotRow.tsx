@@ -3,6 +3,7 @@
 import { ChevronDown, Star } from 'lucide-react'
 import { Fragment, type ReactNode } from 'react'
 import type { RichContent } from '@/lib/rich-content'
+import { FavoriteButton } from '@/components/poll/FavoriteButton'
 import { cn } from '@/lib/cn'
 
 type BallotRowProps = {
@@ -16,6 +17,10 @@ type BallotRowProps = {
     nameSuffix?: ReactNode
     /** Mutes colors for disabled/preview modes. */
     muted?: boolean
+    /** Current favorite state; only meaningful when `onToggleFavorite` is provided. */
+    isFavorite?: boolean
+    /** When provided, renders a bookmark toggle in the trailing controls. */
+    onToggleFavorite?: () => void
     expanded: boolean
     onToggleExpanded: () => void
     /** Stable id used for aria-controls linking to the expand panel. */
@@ -30,6 +35,8 @@ export function BallotRow({
     leading,
     nameSuffix,
     muted,
+    isFavorite,
+    onToggleFavorite,
     expanded,
     onToggleExpanded,
     rowId,
@@ -103,12 +110,23 @@ export function BallotRow({
                     </p>
                 )}
             </div>
-            {hasRich && (
-                <DetailsButton
-                    expanded={expanded}
-                    onToggle={onToggleExpanded}
-                    rowId={rowId}
-                />
+            {(onToggleFavorite || hasRich) && (
+                <div className="flex items-start gap-1">
+                    {onToggleFavorite && (
+                        <FavoriteButton
+                            active={!!isFavorite}
+                            onToggle={onToggleFavorite}
+                            restaurantName={name}
+                        />
+                    )}
+                    {hasRich && (
+                        <DetailsButton
+                            expanded={expanded}
+                            onToggle={onToggleExpanded}
+                            rowId={rowId}
+                        />
+                    )}
+                </div>
             )}
         </div>
     )
