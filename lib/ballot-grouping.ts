@@ -70,10 +70,14 @@ export type CuisineGroup<T> = { label: string; items: T[] }
 export function groupByCuisine<T extends WithCuisines>(
     ballot: T[],
 ): CuisineGroup<T>[] {
-    const byKey = new Map<string, CuisineGroup<T>>()
+    // Untagged restaurants bucket under a Symbol key so they can never collide
+    // with a real cuisine — a tag literally named "Other" folds to "other",
+    // which must remain its own named group rather than merging here.
+    const untaggedKey = Symbol('untagged')
+    const byKey = new Map<string | symbol, CuisineGroup<T>>()
     for (const item of ballot) {
         const primary = primaryCuisine(item)
-        const key = primary === null ? OTHER_LABEL : fold(primary)
+        const key = primary === null ? untaggedKey : fold(primary)
         let group = byKey.get(key)
         if (!group) {
             group = { label: primary ?? OTHER_LABEL, items: [] }
@@ -81,9 +85,9 @@ export function groupByCuisine<T extends WithCuisines>(
         }
         group.items.push(item)
     }
-    const other = byKey.get(OTHER_LABEL)
+    const other = byKey.get(untaggedKey)
     const named = Array.from(byKey.entries())
-        .filter(([key]) => key !== OTHER_LABEL)
+        .filter(([key]) => key !== untaggedKey)
         .map(([, group]) => group)
         .sort((a, b) => a.label.localeCompare(b.label))
     return other ? [...named, other] : named
