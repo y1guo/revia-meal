@@ -4,9 +4,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { BallotRow, BallotRowExpand } from '@/components/poll/BallotRow'
+import { BallotSections } from '@/components/poll/BallotSections'
+import { partitionFavorites } from '@/components/poll/partitionFavorites'
+import { useFavorites } from '@/components/poll/useFavorites'
 import { BankedCreditChip } from '@/components/ui/BankedCreditChip'
 import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
 import { Checkbox } from '@/components/ui/Checkbox'
 import { cn } from '@/lib/cn'
 import type { RichContent } from '@/lib/rich-content'
@@ -34,11 +36,13 @@ export default function VoteForm({
     ballot,
     initialPicks,
     bankedByRestaurant,
+    initialFavoriteIds,
 }: {
     pollId: string
     ballot: Ballot[]
     initialPicks: string[]
     bankedByRestaurant: Record<string, number>
+    initialFavoriteIds: string[]
 }) {
     const router = useRouter()
 
@@ -46,6 +50,7 @@ export default function VoteForm({
     const [status, setStatus] = useState<Status>('blank')
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
+    const { favorites, toggle: toggleFavorite } = useFavorites(initialFavoriteIds)
 
     const toggleExpanded = (id: string) => {
         setExpanded((prev) => {
@@ -215,89 +220,91 @@ export default function VoteForm({
         return picks.size === 1 ? '1 credit' : `1/${picks.size} credit`
     }, [picks])
 
-    return (
-        <div className="space-y-4">
-            <Card className="p-0 overflow-hidden">
-                <ul className="divide-y divide-[color:var(--border-subtle)]">
-                    {ballot.map((r) => {
-                        const banked = bankedByRestaurant[r.id] ?? 0
-                        const isChecked = picks.has(r.id)
-                        // When the option is disabled and the user doesn't
-                        // currently have it picked, the checkbox is fully
-                        // uninteractable. When they do have it picked, the
-                        // checkbox stays clickable so they can unvote; once
-                        // unchecked, the next render will see isChecked=false
-                        // and lock it down.
-                        const uninteractable = r.disabled && !isChecked
-                        const rowId = `ballot-row-${r.id}`
-                        const isExpanded = expanded.has(r.id)
-                        return (
-                            <li key={r.id}>
-                                <label
-                                    className={cn(
-                                        'group block border-l-[3px]',
-                                        'transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[var(--ease-out-quart)]',
-                                        isChecked
-                                            ? 'cursor-pointer border-l-[color:var(--accent-brand)] bg-[color:var(--choice-selected-bg)] shadow-[inset_0_0_0_1px_var(--choice-selected-ring)]'
-                                            : uninteractable
-                                              ? 'cursor-not-allowed border-l-transparent bg-[color:var(--surface-sunken)]'
-                                              : 'cursor-pointer border-l-transparent hover:border-l-[color:var(--accent-brand)] hover:bg-[color:var(--choice-hover-bg)]',
-                                    )}
-                                >
-                                    <BallotRow
-                                        name={r.name}
-                                        doordashUrl={r.doordash_url}
-                                        notes={r.notes}
-                                        richContent={r.rich_content}
-                                        leading={
-                                            <Checkbox
-                                                checked={isChecked}
-                                                disabled={uninteractable}
-                                                onCheckedChange={(next) => {
-                                                    togglePick(
-                                                        r.id,
-                                                        next === true,
-                                                        r.disabled,
-                                                    )
-                                                }}
-                                            />
-                                        }
-                                        nameSuffix={
-                                            <>
-                                                {r.disabled && (
-                                                    <span className="inline-flex items-center rounded-[var(--radius-pill)] px-2 py-0.5 text-[0.6875rem] font-medium uppercase tracking-wide bg-[color:var(--surface-raised)] text-[color:var(--text-secondary)] border border-[color:var(--border-subtle)]">
-                                                        Removed
-                                                    </span>
-                                                )}
-                                                {banked > 0 && (
-                                                    <BankedCreditChip
-                                                        weight={banked}
-                                                        restaurantName={r.name}
-                                                    />
-                                                )}
-                                            </>
-                                        }
-                                        muted={r.disabled}
-                                        expanded={isExpanded}
-                                        onToggleExpanded={() =>
-                                            toggleExpanded(r.id)
-                                        }
-                                        rowId={rowId}
-                                    />
-                                </label>
-                                {isExpanded && r.rich_content && (
-                                    <BallotRowExpand
-                                        name={r.name}
-                                        richContent={r.rich_content}
-                                        notes={r.notes}
-                                        rowId={rowId}
+    function renderRow(r: Ballot) {
+        const banked = bankedByRestaurant[r.id] ?? 0
+        const isChecked = picks.has(r.id)
+        // When the option is disabled and the user doesn't currently have it
+        // picked, the checkbox is fully uninteractable. When they do have it
+        // picked, the checkbox stays clickable so they can unvote; once
+        // unchecked, the next render will see isChecked=false and lock it down.
+        const uninteractable = r.disabled && !isChecked
+        const rowId = `ballot-row-${r.id}`
+        const isExpanded = expanded.has(r.id)
+        return (
+            <li key={r.id}>
+                <label
+                    className={cn(
+                        'group block border-l-[3px]',
+                        'transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[var(--ease-out-quart)]',
+                        isChecked
+                            ? 'cursor-pointer border-l-[color:var(--accent-brand)] bg-[color:var(--choice-selected-bg)] shadow-[inset_0_0_0_1px_var(--choice-selected-ring)]'
+                            : uninteractable
+                              ? 'cursor-not-allowed border-l-transparent bg-[color:var(--surface-sunken)]'
+                              : 'cursor-pointer border-l-transparent hover:border-l-[color:var(--accent-brand)] hover:bg-[color:var(--choice-hover-bg)]',
+                    )}
+                >
+                    <BallotRow
+                        name={r.name}
+                        doordashUrl={r.doordash_url}
+                        notes={r.notes}
+                        richContent={r.rich_content}
+                        isFavorite={favorites.has(r.id)}
+                        onToggleFavorite={() => toggleFavorite(r.id)}
+                        leading={
+                            <Checkbox
+                                checked={isChecked}
+                                disabled={uninteractable}
+                                onCheckedChange={(next) => {
+                                    togglePick(
+                                        r.id,
+                                        next === true,
+                                        r.disabled,
+                                    )
+                                }}
+                            />
+                        }
+                        nameSuffix={
+                            <>
+                                {r.disabled && (
+                                    <span className="inline-flex items-center rounded-[var(--radius-pill)] px-2 py-0.5 text-[0.6875rem] font-medium uppercase tracking-wide bg-[color:var(--surface-raised)] text-[color:var(--text-secondary)] border border-[color:var(--border-subtle)]">
+                                        Removed
+                                    </span>
+                                )}
+                                {banked > 0 && (
+                                    <BankedCreditChip
+                                        weight={banked}
+                                        restaurantName={r.name}
                                     />
                                 )}
-                            </li>
-                        )
-                    })}
-                </ul>
-            </Card>
+                            </>
+                        }
+                        muted={r.disabled}
+                        expanded={isExpanded}
+                        onToggleExpanded={() => toggleExpanded(r.id)}
+                        rowId={rowId}
+                    />
+                </label>
+                {isExpanded && r.rich_content && (
+                    <BallotRowExpand
+                        name={r.name}
+                        richContent={r.rich_content}
+                        notes={r.notes}
+                        rowId={rowId}
+                    />
+                )}
+            </li>
+        )
+    }
+
+    const { favorites: favRows, rest } = partitionFavorites(ballot, favorites)
+
+    return (
+        <div className="space-y-4">
+            <BallotSections
+                favorites={favRows}
+                rest={rest}
+                renderRow={renderRow}
+            />
 
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-[0.875rem] text-[color:var(--text-secondary)]">

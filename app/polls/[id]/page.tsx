@@ -12,6 +12,7 @@ import { CountUp } from '@/components/ui/CountUp'
 import { StatusBadge } from '@/components/ui/StatusBadge'
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
+import { getFavoriteRestaurantIds } from '@/lib/favorites'
 import { formatDateTime } from '@/lib/format-time'
 import type { RichContent } from '@/lib/rich-content'
 import { createAdminClient } from '@/lib/supabase/admin'
@@ -204,6 +205,15 @@ export default async function PollPage({ params }: { params: Params }) {
 
     const status = getPollStatus(poll)
 
+    // Favorites surface on the open ballot and the scheduled preview. Kick the
+    // query off here so it runs in parallel with the banked-credit queries below
+    // (it's independent of them); awaited just before render.
+    const favoritesPromise =
+        (status === 'open' || status === 'scheduled') &&
+        restaurantIds.length > 0
+            ? getFavoriteRestaurantIds(user.id, restaurantIds)
+            : Promise.resolve<string[]>([])
+
     const userBankedByRestaurant = new Map<string, number>()
     if (status === 'open' && restaurantIds.length > 0) {
         const { data: cancelledRows } = await admin
@@ -232,6 +242,8 @@ export default async function PollPage({ params }: { params: Params }) {
             )
         }
     }
+
+    const initialFavoriteIds = await favoritesPromise
 
     let closedTallies: ClosedTally[] = []
     let closedVoters: VoterPick[] = []
@@ -394,6 +406,7 @@ export default async function PollPage({ params }: { params: Params }) {
                         bankedByRestaurant={Object.fromEntries(
                             userBankedByRestaurant,
                         )}
+                        initialFavoriteIds={initialFavoriteIds}
                     />
                 ) : status === 'closed' ? (
                     <>
@@ -418,6 +431,8 @@ export default async function PollPage({ params }: { params: Params }) {
                         }))}
                         userPickIds={initialPicks}
                         showYouVoted={status === 'cancelled'}
+                        enableFavorites={status === 'scheduled'}
+                        initialFavoriteIds={initialFavoriteIds}
                     />
                 )}
             </section>
