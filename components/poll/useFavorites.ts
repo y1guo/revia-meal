@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { setFavoriteAction } from '@/app/polls/[id]/actions'
+import { setFavoriteAction } from '@/lib/favorites-actions'
 
 /**
  * Optimistic per-user favorites for the poll ballot.

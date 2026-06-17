@@ -9,6 +9,9 @@ import { setFavorite, type SetFavoriteResult } from '@/lib/favorites'
  * integrity, and disabled/"Removed" restaurants are intentionally favoritable.
  * No revalidatePath: the client is optimistic and the poll route re-derives the
  * Favorites grouping from the DB on its next load.
+ *
+ * Kept in lib/ (not a route directory) so shared components/poll/ modules can
+ * import it without reaching into a route-local actions file.
  */
 export async function setFavoriteAction(
     restaurantId: string,
