@@ -6,6 +6,8 @@ import { TableCount } from '@/components/ui/TableToolbar'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { AddRestaurantModal } from './add-restaurant-modal'
 import { BookmarkletInstall } from './bookmarklet-install'
+import { parsePageSize } from './page-size'
+import { PageSizeSelect } from './page-size-select'
 import {
     RestaurantsTable,
     type RestaurantRow,
@@ -14,12 +16,11 @@ import { StatusFilter } from './status-filter'
 
 export const metadata: Metadata = { title: 'Restaurants · Admin' }
 
-const PAGE_SIZE = 20
-
 type SearchParams = Promise<{
     q?: string
     status?: string
     page?: string
+    size?: string
 }>
 
 export default async function RestaurantsPage({
@@ -34,6 +35,7 @@ export default async function RestaurantsPage({
             ? params.status
             : ''
     const page = Math.max(1, Number(params.page) || 1)
+    const pageSize = parsePageSize(params.size)
 
     const supabase = createAdminClient()
     let query = supabase
@@ -47,7 +49,7 @@ export default async function RestaurantsPage({
 
     const { data, count } = await query
         .order('name', { ascending: true })
-        .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1)
+        .range((page - 1) * pageSize, page * pageSize - 1)
 
     const rows: RestaurantRow[] = (data ?? []).map((r) => ({
         id: r.id as string,
@@ -79,6 +81,7 @@ export default async function RestaurantsPage({
                                 />
                             </div>
                             <StatusFilter value={status} />
+                            <PageSizeSelect value={pageSize} />
                         </>
                     }
                     trailing={
@@ -93,7 +96,7 @@ export default async function RestaurantsPage({
                     }
                 />
 
-                <Pagination page={page} total={total} pageSize={PAGE_SIZE} />
+                <Pagination page={page} total={total} pageSize={pageSize} />
             </div>
         </>
     )

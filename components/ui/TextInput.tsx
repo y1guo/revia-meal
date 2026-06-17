@@ -5,6 +5,7 @@ export type TextInputSize = 'sm' | 'md' | 'lg'
 type TextInputProps = Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> & {
     size?: TextInputSize
     error?: boolean
+    ref?: React.Ref<HTMLInputElement>
 }
 
 const SIZE: Record<TextInputSize, string> = {
@@ -18,11 +19,13 @@ export function TextInput({
     error,
     className,
     type = 'text',
+    ref,
     ...rest
 }: TextInputProps) {
     return (
         <input
             {...rest}
+            ref={ref}
             type={type}
             aria-invalid={error || undefined}
             className={cn(
