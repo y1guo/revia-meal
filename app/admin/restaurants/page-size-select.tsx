@@ -10,8 +10,7 @@ import {
     PAGE_SIZE_PRESETS,
 } from './page-size'
 
-const PRESETS: readonly number[] = PAGE_SIZE_PRESETS
-const isPreset = (n: number) => PRESETS.includes(n)
+const isPreset = (n: number) => PAGE_SIZE_PRESETS.includes(n)
 
 /**
  * URL-driven "rows per page" control. Presets (25/50/100) apply immediately;

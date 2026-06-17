@@ -3,7 +3,7 @@
  * (which clamps the `size` search param) and the client PageSizeSelect (which
  * offers the presets and validates a custom value) so the two never drift.
  */
-export const PAGE_SIZE_PRESETS = [25, 50, 100] as const
+export const PAGE_SIZE_PRESETS: readonly number[] = [25, 50, 100]
 export const DEFAULT_PAGE_SIZE = 25
 export const MIN_PAGE_SIZE = 1
 export const MAX_PAGE_SIZE = 200
