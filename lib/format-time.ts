@@ -65,3 +65,28 @@ export function todayISO(now: Date = new Date()): string {
 export function toISODate(d: Date): string {
     return todayISO(d)
 }
+
+/**
+ * Whole-calendar-day difference between `value` and `now`, measured in
+ * `COMPANY_TZ`. Both endpoints are reduced to their company-timezone calendar
+ * date (via `toISODate`) before diffing, so an evening-Pacific timestamp — which
+ * is the next day in UTC — still counts as the correct local day. The y/m/d parts
+ * are diffed through `Date.UTC` purely as a DST-safe day counter; we never read
+ * `.getDate()/.getUTCDate()` off the raw timestamp.
+ */
+export function daysAgo(value: Date | string, now: Date = new Date()): number {
+    const d = typeof value === 'string' ? new Date(value) : value
+    const [vy, vm, vd] = toISODate(d).split('-').map(Number)
+    const [ny, nm, nd] = toISODate(now).split('-').map(Number)
+    const MS_PER_DAY = 24 * 60 * 60 * 1000
+    return Math.round(
+        (Date.UTC(ny, nm - 1, nd) - Date.UTC(vy, vm - 1, vd)) / MS_PER_DAY,
+    )
+}
+
+/** Human relative-day label: 0 → "today", 1 → "yesterday", else "N days ago". */
+export function formatDaysAgo(n: number): string {
+    if (n <= 0) return 'today'
+    if (n === 1) return 'yesterday'
+    return `${n} days ago`
+}

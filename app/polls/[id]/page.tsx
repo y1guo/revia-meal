@@ -13,7 +13,7 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 import { cn } from '@/lib/cn'
 import { requireUser } from '@/lib/auth'
 import { getFavoriteRestaurantIds } from '@/lib/favorites'
-import { formatDateTime } from '@/lib/format-time'
+import { daysAgo, formatDateTime } from '@/lib/format-time'
 import type { RichContent } from '@/lib/rich-content'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { selectUsersWithAvatar } from '@/lib/users'
@@ -24,6 +24,7 @@ import {
 } from '@/lib/polls'
 import VoteForm, { type Ballot } from './vote-form'
 import { BallotPreviewList } from './ballot-preview'
+import type { OrderStats } from '@/components/poll/BallotRow'
 
 type Params = Promise<{ id: string }>
 
@@ -215,31 +216,67 @@ export default async function PollPage({ params }: { params: Params }) {
             : Promise.resolve<string[]>([])
 
     const userBankedByRestaurant = new Map<string, number>()
+    const orderStatsByRestaurant: Record<string, OrderStats> = {}
     if (status === 'open' && restaurantIds.length > 0) {
-        const { data: cancelledRows } = await admin
-            .from('polls')
-            .select('id')
-            .eq('template_id', poll.template_id)
-            .not('cancelled_at', 'is', null)
-        const cancelledIds = new Set(
-            (cancelledRows ?? []).map((p) => p.id as string),
-        )
+        const [cancelledRes, bankedRes, winRes] = await Promise.all([
+            admin
+                .from('polls')
+                .select('id')
+                .eq('template_id', poll.template_id)
+                .not('cancelled_at', 'is', null),
+            admin
+                .from('votes')
+                .select('restaurant_id, vote_weight, poll_id')
+                .eq('user_id', user.id)
+                .eq('template_id', poll.template_id)
+                .is('exercised_at', null)
+                .neq('poll_id', poll.id)
+                .in('restaurant_id', restaurantIds),
+            // Global, all-time order history: how often / how recently each ballot
+            // restaurant has won (been ordered). Deliberately NO template_id filter
+            // — counts span every template per spec. `.in('winner_id', …)` already
+            // excludes nulls; the finalized_at clause is defensive (a cancelled poll
+            // never carries a winner_id).
+            admin
+                .from('polls')
+                .select('winner_id, finalized_at')
+                .in('winner_id', restaurantIds)
+                .not('finalized_at', 'is', null),
+        ])
 
-        const { data: bankedRows } = await admin
-            .from('votes')
-            .select('restaurant_id, vote_weight, poll_id')
-            .eq('user_id', user.id)
-            .eq('template_id', poll.template_id)
-            .is('exercised_at', null)
-            .neq('poll_id', poll.id)
-            .in('restaurant_id', restaurantIds)
-        for (const b of bankedRows ?? []) {
+        const cancelledIds = new Set(
+            (cancelledRes.data ?? []).map((p) => p.id as string),
+        )
+        for (const b of bankedRes.data ?? []) {
             if (cancelledIds.has(b.poll_id as string)) continue
             const r = b.restaurant_id as string
             userBankedByRestaurant.set(
                 r,
                 (userBankedByRestaurant.get(r) ?? 0) + Number(b.vote_weight),
             )
+        }
+
+        const timesOrdered = new Map<string, number>()
+        const lastFinalizedAt = new Map<string, string>()
+        for (const w of winRes.data ?? []) {
+            const rid = w.winner_id as string | null
+            const finalizedAt = w.finalized_at as string | null
+            if (!rid || !finalizedAt) continue
+            timesOrdered.set(rid, (timesOrdered.get(rid) ?? 0) + 1)
+            const prev = lastFinalizedAt.get(rid)
+            if (
+                !prev ||
+                new Date(finalizedAt).getTime() > new Date(prev).getTime()
+            ) {
+                lastFinalizedAt.set(rid, finalizedAt)
+            }
+        }
+        for (const [rid, count] of timesOrdered) {
+            const last = lastFinalizedAt.get(rid)
+            orderStatsByRestaurant[rid] = {
+                timesOrdered: count,
+                lastOrderedDaysAgo: last ? daysAgo(last) : null,
+            }
         }
     }
 
@@ -406,6 +443,7 @@ export default async function PollPage({ params }: { params: Params }) {
                         bankedByRestaurant={Object.fromEntries(
                             userBankedByRestaurant,
                         )}
+                        orderStatsByRestaurant={orderStatsByRestaurant}
                         initialFavoriteIds={initialFavoriteIds}
                     />
                 ) : status === 'closed' ? (
