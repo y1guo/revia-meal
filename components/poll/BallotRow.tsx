@@ -4,6 +4,7 @@ import { ChevronDown, Star } from 'lucide-react'
 import { Fragment, type ReactNode } from 'react'
 import type { RichContent } from '@/lib/rich-content'
 import { formatDaysAgo } from '@/lib/format-time'
+import { FavoriteButton } from '@/components/poll/FavoriteButton'
 import { cn } from '@/lib/cn'
 
 /** Global, all-time order history for a restaurant (won = ordered). */
@@ -25,6 +26,10 @@ type BallotRowProps = {
     muted?: boolean
     /** Order-history badges ("Ordered N×", "Last ordered …"); omitted when absent or zero. */
     orderStats?: OrderStats
+    /** Current favorite state; only meaningful when `onToggleFavorite` is provided. */
+    isFavorite?: boolean
+    /** When provided, renders a bookmark toggle in the trailing controls. */
+    onToggleFavorite?: () => void
     expanded: boolean
     onToggleExpanded: () => void
     /** Stable id used for aria-controls linking to the expand panel. */
@@ -40,6 +45,8 @@ export function BallotRow({
     nameSuffix,
     muted,
     orderStats,
+    isFavorite,
+    onToggleFavorite,
     expanded,
     onToggleExpanded,
     rowId,
@@ -114,12 +121,23 @@ export function BallotRow({
                 )}
                 <OrderHistory orderStats={orderStats} muted={muted} />
             </div>
-            {hasRich && (
-                <DetailsButton
-                    expanded={expanded}
-                    onToggle={onToggleExpanded}
-                    rowId={rowId}
-                />
+            {(onToggleFavorite || hasRich) && (
+                <div className="flex items-start gap-1">
+                    {onToggleFavorite && (
+                        <FavoriteButton
+                            active={!!isFavorite}
+                            onToggle={onToggleFavorite}
+                            restaurantName={name}
+                        />
+                    )}
+                    {hasRich && (
+                        <DetailsButton
+                            expanded={expanded}
+                            onToggle={onToggleExpanded}
+                            rowId={rowId}
+                        />
+                    )}
+                </div>
             )}
         </div>
     )

@@ -9,6 +9,8 @@ import {
     type OrderStats,
 } from '@/components/poll/BallotRow'
 import { CuisineFilterBar } from '@/components/poll/CuisineFilterBar'
+import { partitionFavorites } from '@/components/poll/partitionFavorites'
+import { useFavorites } from '@/components/poll/useFavorites'
 import { BankedCreditChip } from '@/components/ui/BankedCreditChip'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -45,12 +47,14 @@ export default function VoteForm({
     initialPicks,
     bankedByRestaurant,
     orderStatsByRestaurant,
+    initialFavoriteIds,
 }: {
     pollId: string
     ballot: Ballot[]
     initialPicks: string[]
     bankedByRestaurant: Record<string, number>
     orderStatsByRestaurant: Record<string, OrderStats>
+    initialFavoriteIds: string[]
 }) {
     const router = useRouter()
 
@@ -60,6 +64,7 @@ export default function VoteForm({
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
     const [grouped, setGrouped] = useState(false)
     const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set())
+    const { favorites, toggle: toggleFavorite } = useFavorites(initialFavoriteIds)
 
     const cuisineTags = useMemo(() => collectCuisineTags(ballot), [ballot])
     const visible = useMemo(
@@ -285,6 +290,8 @@ export default function VoteForm({
                         notes={r.notes}
                         richContent={r.rich_content}
                         orderStats={orderStatsByRestaurant[r.id]}
+                        isFavorite={favorites.has(r.id)}
+                        onToggleFavorite={() => toggleFavorite(r.id)}
                         leading={
                             <Checkbox
                                 checked={isChecked}
@@ -327,7 +334,14 @@ export default function VoteForm({
         )
     }
 
-    const groups = grouped ? groupByCuisine(visible) : null
+    // Filtering (cuisine chips) narrows the list first; within the visible set,
+    // favorites pin to a top section and the remainder renders either as cuisine
+    // groups (when the "group by cuisine" toggle is on) or a flat list.
+    const { favorites: favRows, rest } = partitionFavorites(visible, favorites)
+    const restGroups = grouped ? groupByCuisine(rest) : null
+    const sectionHeaderClass =
+        'px-4 pt-4 pb-1 md:px-5 text-[0.75rem] font-medium uppercase tracking-wide text-[color:var(--text-secondary)]'
+    const listClass = 'divide-y divide-[color:var(--border-subtle)]'
 
     return (
         <div className="space-y-4">
@@ -363,21 +377,43 @@ export default function VoteForm({
                             </Button>
                         </div>
                     </div>
-                ) : groups ? (
-                    groups.map((group) => (
-                        <section key={group.label}>
-                            <h3 className="px-4 pt-4 pb-1 text-[0.75rem] font-medium uppercase tracking-wide text-[color:var(--text-secondary)] md:px-5">
-                                {group.label}
-                            </h3>
-                            <ul className="divide-y divide-[color:var(--border-subtle)]">
-                                {group.items.map(renderRow)}
-                            </ul>
-                        </section>
-                    ))
                 ) : (
-                    <ul className="divide-y divide-[color:var(--border-subtle)]">
-                        {visible.map(renderRow)}
-                    </ul>
+                    <>
+                        {favRows.length > 0 && (
+                            <section>
+                                <h3 className={sectionHeaderClass}>Favorites</h3>
+                                <ul className={listClass}>
+                                    {favRows.map(renderRow)}
+                                </ul>
+                            </section>
+                        )}
+                        {rest.length > 0 &&
+                            (restGroups ? (
+                                restGroups.map((group) => (
+                                    <section key={group.label}>
+                                        <h3 className={sectionHeaderClass}>
+                                            {group.label}
+                                        </h3>
+                                        <ul className={listClass}>
+                                            {group.items.map(renderRow)}
+                                        </ul>
+                                    </section>
+                                ))
+                            ) : favRows.length > 0 ? (
+                                <section>
+                                    <h3 className={sectionHeaderClass}>
+                                        All restaurants
+                                    </h3>
+                                    <ul className={listClass}>
+                                        {rest.map(renderRow)}
+                                    </ul>
+                                </section>
+                            ) : (
+                                <ul className={listClass}>
+                                    {rest.map(renderRow)}
+                                </ul>
+                            ))}
+                    </>
                 )}
             </Card>
 
