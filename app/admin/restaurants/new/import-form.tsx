@@ -33,7 +33,10 @@ export function ImportForm({ decoded, prefill }: Props) {
     const [notes, setNotes] = useState('')
     const [error, setError] = useState<string | null>(null)
     const [pending, startTransition] = useTransition()
-    const [expanded, setExpanded] = useState(false)
+    // Default the preview open so the admin sees the full rich content that will
+    // be saved (cover image, featured items, address) before clicking Save — not
+    // just the collapsed ballot row. Real poll ballots still default collapsed.
+    const [expanded, setExpanded] = useState(true)
 
     const handleSubmit = (formData: FormData) => {
         setError(null)
