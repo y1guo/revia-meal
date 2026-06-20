@@ -90,7 +90,7 @@ export function SearchInput({
                 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--text-tertiary)]"
             />
             <input
-                type="search"
+                type="text"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
