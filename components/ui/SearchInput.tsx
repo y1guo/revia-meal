@@ -35,16 +35,23 @@ export function SearchInput({
     const searchParams = useSearchParams()
     const urlValue = searchParams.get(paramKey) ?? ''
     const [value, setValue] = useState(urlValue)
-    const [lastSynced, setLastSynced] = useState(urlValue)
+    const [prevUrlValue, setPrevUrlValue] = useState(urlValue)
     const [, startTransition] = useTransition()
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+    // The value our own debounced push last sent to the URL. Kept in a ref so
+    // updating it never triggers a render and is never compared against a
+    // not-yet-committed `urlValue` (the navigation runs in a transition, so the
+    // URL lags behind our push by a render or two).
+    const lastPushed = useRef(urlValue)
 
     // Sync local state when the URL changes from outside (back button, link
     // with a ?q= param, etc.) using React's store-info-from-previous-renders
-    // pattern — no effect needed.
-    if (urlValue !== lastSynced) {
-        setLastSynced(urlValue)
-        setValue(urlValue)
+    // pattern — no effect needed. We only overwrite live typing when the new
+    // URL value wasn't one we produced ourselves; otherwise a slow navigation
+    // committing our own push would snap the box back over the user's input.
+    if (urlValue !== prevUrlValue) {
+        setPrevUrlValue(urlValue)
+        if (urlValue !== lastPushed.current) setValue(urlValue)
     }
 
     const push = (next: string) => {
@@ -53,10 +60,9 @@ export function SearchInput({
         if (trimmed) params.set(paramKey, trimmed)
         else params.delete(paramKey)
         for (const k of resetParams) params.delete(k)
-        // Pre-record what we're about to push so the render-time sync above
-        // doesn't re-snap back the user's live typing when searchParams
-        // arrives with the same value.
-        setLastSynced(trimmed)
+        // Remember what we're navigating to so the sync above treats the
+        // resulting URL change as self-inflicted and leaves the input alone.
+        lastPushed.current = trimmed
         startTransition(() => {
             const qs = params.toString()
             router.replace(qs ? `?${qs}` : '?', { scroll: false })
