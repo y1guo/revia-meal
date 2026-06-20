@@ -3,11 +3,23 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BallotRow, BallotRowExpand } from '@/components/poll/BallotRow'
+import {
+    BallotRow,
+    BallotRowExpand,
+    type OrderStats,
+} from '@/components/poll/BallotRow'
+import { CuisineFilterBar } from '@/components/poll/CuisineFilterBar'
+import { partitionFavorites } from '@/components/poll/partitionFavorites'
+import { useFavorites } from '@/components/poll/useFavorites'
 import { BankedCreditChip } from '@/components/ui/BankedCreditChip'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Checkbox } from '@/components/ui/Checkbox'
+import {
+    collectCuisineTags,
+    filterByCuisines,
+    groupByCuisine,
+} from '@/lib/ballot-grouping'
 import { cn } from '@/lib/cn'
 import type { RichContent } from '@/lib/rich-content'
 
@@ -34,11 +46,15 @@ export default function VoteForm({
     ballot,
     initialPicks,
     bankedByRestaurant,
+    orderStatsByRestaurant,
+    initialFavoriteIds,
 }: {
     pollId: string
     ballot: Ballot[]
     initialPicks: string[]
     bankedByRestaurant: Record<string, number>
+    orderStatsByRestaurant: Record<string, OrderStats>
+    initialFavoriteIds: string[]
 }) {
     const router = useRouter()
 
@@ -46,6 +62,36 @@ export default function VoteForm({
     const [status, setStatus] = useState<Status>('blank')
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
+    const [grouped, setGrouped] = useState(false)
+    const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set())
+    const { favorites, toggle: toggleFavorite } = useFavorites(initialFavoriteIds)
+
+    const cuisineTags = useMemo(() => collectCuisineTags(ballot), [ballot])
+    const visible = useMemo(
+        () => filterByCuisines(ballot, activeFilters),
+        [ballot, activeFilters],
+    )
+    const visibleIds = useMemo(
+        () => new Set(visible.map((r) => r.id)),
+        [visible],
+    )
+    const hiddenPickCount = useMemo(
+        () => [...picks].filter((id) => !visibleIds.has(id)).length,
+        [picks, visibleIds],
+    )
+
+    function toggleFilter(tag: string) {
+        setActiveFilters((prev) => {
+            const next = new Set(prev)
+            if (next.has(tag)) next.delete(tag)
+            else next.add(tag)
+            return next
+        })
+    }
+
+    function clearFilters() {
+        setActiveFilters(new Set())
+    }
 
     const toggleExpanded = (id: string) => {
         setExpanded((prev) => {
@@ -215,89 +261,169 @@ export default function VoteForm({
         return picks.size === 1 ? '1 credit' : `1/${picks.size} credit`
     }, [picks])
 
-    return (
-        <div className="space-y-4">
-            <Card className="p-0 overflow-hidden">
-                <ul className="divide-y divide-[color:var(--border-subtle)]">
-                    {ballot.map((r) => {
-                        const banked = bankedByRestaurant[r.id] ?? 0
-                        const isChecked = picks.has(r.id)
-                        // When the option is disabled and the user doesn't
-                        // currently have it picked, the checkbox is fully
-                        // uninteractable. When they do have it picked, the
-                        // checkbox stays clickable so they can unvote; once
-                        // unchecked, the next render will see isChecked=false
-                        // and lock it down.
-                        const uninteractable = r.disabled && !isChecked
-                        const rowId = `ballot-row-${r.id}`
-                        const isExpanded = expanded.has(r.id)
-                        return (
-                            <li key={r.id}>
-                                <label
-                                    className={cn(
-                                        'group block border-l-[3px]',
-                                        'transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[var(--ease-out-quart)]',
-                                        isChecked
-                                            ? 'cursor-pointer border-l-[color:var(--accent-brand)] bg-[color:var(--choice-selected-bg)] shadow-[inset_0_0_0_1px_var(--choice-selected-ring)]'
-                                            : uninteractable
-                                              ? 'cursor-not-allowed border-l-transparent bg-[color:var(--surface-sunken)]'
-                                              : 'cursor-pointer border-l-transparent hover:border-l-[color:var(--accent-brand)] hover:bg-[color:var(--choice-hover-bg)]',
-                                    )}
-                                >
-                                    <BallotRow
-                                        name={r.name}
-                                        doordashUrl={r.doordash_url}
-                                        notes={r.notes}
-                                        richContent={r.rich_content}
-                                        leading={
-                                            <Checkbox
-                                                checked={isChecked}
-                                                disabled={uninteractable}
-                                                onCheckedChange={(next) => {
-                                                    togglePick(
-                                                        r.id,
-                                                        next === true,
-                                                        r.disabled,
-                                                    )
-                                                }}
-                                            />
-                                        }
-                                        nameSuffix={
-                                            <>
-                                                {r.disabled && (
-                                                    <span className="inline-flex items-center rounded-[var(--radius-pill)] px-2 py-0.5 text-[0.6875rem] font-medium uppercase tracking-wide bg-[color:var(--surface-raised)] text-[color:var(--text-secondary)] border border-[color:var(--border-subtle)]">
-                                                        Removed
-                                                    </span>
-                                                )}
-                                                {banked > 0 && (
-                                                    <BankedCreditChip
-                                                        weight={banked}
-                                                        restaurantName={r.name}
-                                                    />
-                                                )}
-                                            </>
-                                        }
-                                        muted={r.disabled}
-                                        expanded={isExpanded}
-                                        onToggleExpanded={() =>
-                                            toggleExpanded(r.id)
-                                        }
-                                        rowId={rowId}
-                                    />
-                                </label>
-                                {isExpanded && r.rich_content && (
-                                    <BallotRowExpand
-                                        name={r.name}
-                                        richContent={r.rich_content}
-                                        notes={r.notes}
-                                        rowId={rowId}
+    function renderRow(r: Ballot) {
+        const banked = bankedByRestaurant[r.id] ?? 0
+        const isChecked = picks.has(r.id)
+        // When the option is disabled and the user doesn't currently have it
+        // picked, the checkbox is fully uninteractable. When they do have it
+        // picked, the checkbox stays clickable so they can unvote; once
+        // unchecked, the next render will see isChecked=false and lock it down.
+        const uninteractable = r.disabled && !isChecked
+        const rowId = `ballot-row-${r.id}`
+        const isExpanded = expanded.has(r.id)
+        return (
+            <li key={r.id}>
+                <label
+                    className={cn(
+                        'group block border-l-[3px]',
+                        'transition-[background-color,border-color,box-shadow,transform] duration-200 ease-[var(--ease-out-quart)]',
+                        isChecked
+                            ? 'cursor-pointer border-l-[color:var(--accent-brand)] bg-[color:var(--choice-selected-bg)] shadow-[inset_0_0_0_1px_var(--choice-selected-ring)]'
+                            : uninteractable
+                              ? 'cursor-not-allowed border-l-transparent bg-[color:var(--surface-sunken)]'
+                              : 'cursor-pointer border-l-transparent hover:border-l-[color:var(--accent-brand)] hover:bg-[color:var(--choice-hover-bg)]',
+                    )}
+                >
+                    <BallotRow
+                        name={r.name}
+                        doordashUrl={r.doordash_url}
+                        notes={r.notes}
+                        richContent={r.rich_content}
+                        orderStats={orderStatsByRestaurant[r.id]}
+                        isFavorite={favorites.has(r.id)}
+                        onToggleFavorite={() => toggleFavorite(r.id)}
+                        leading={
+                            <Checkbox
+                                checked={isChecked}
+                                disabled={uninteractable}
+                                onCheckedChange={(next) => {
+                                    togglePick(r.id, next === true, r.disabled)
+                                }}
+                            />
+                        }
+                        nameSuffix={
+                            <>
+                                {r.disabled && (
+                                    <span className="inline-flex items-center rounded-[var(--radius-pill)] px-2 py-0.5 text-[0.6875rem] font-medium uppercase tracking-wide bg-[color:var(--surface-raised)] text-[color:var(--text-secondary)] border border-[color:var(--border-subtle)]">
+                                        Removed
+                                    </span>
+                                )}
+                                {banked > 0 && (
+                                    <BankedCreditChip
+                                        weight={banked}
+                                        restaurantName={r.name}
                                     />
                                 )}
-                            </li>
-                        )
-                    })}
-                </ul>
+                            </>
+                        }
+                        muted={r.disabled}
+                        expanded={isExpanded}
+                        onToggleExpanded={() => toggleExpanded(r.id)}
+                        rowId={rowId}
+                    />
+                </label>
+                {isExpanded && r.rich_content && (
+                    <BallotRowExpand
+                        name={r.name}
+                        richContent={r.rich_content}
+                        notes={r.notes}
+                        rowId={rowId}
+                    />
+                )}
+            </li>
+        )
+    }
+
+    // Filtering (cuisine chips) narrows the list first; within the visible set,
+    // favorites pin to a top section and the remainder renders either as cuisine
+    // groups (when the "group by cuisine" toggle is on) or a flat list.
+    const { favorites: favRows, rest } = partitionFavorites(visible, favorites)
+    const restGroups = grouped ? groupByCuisine(rest) : null
+    const sectionHeaderClass =
+        'px-4 pt-4 pb-1 md:px-5 text-[0.75rem] font-medium uppercase tracking-wide text-[color:var(--text-secondary)]'
+    const listClass = 'divide-y divide-[color:var(--border-subtle)]'
+
+    return (
+        <div className="space-y-4">
+            {cuisineTags.length > 0 && (
+                <>
+                    <CuisineFilterBar
+                        tags={cuisineTags}
+                        active={activeFilters}
+                        onToggle={toggleFilter}
+                        onClear={clearFilters}
+                        grouped={grouped}
+                        onGroupedChange={setGrouped}
+                    />
+                    <p aria-live="polite" className="sr-only">
+                        {visible.length} of {ballot.length} restaurants shown
+                    </p>
+                </>
+            )}
+            <Card className="p-0 overflow-hidden">
+                {visible.length === 0 ? (
+                    <div className="px-4 py-10 text-center md:px-5">
+                        <p className="text-[0.875rem] text-[color:var(--text-secondary)]">
+                            No restaurants match these filters.
+                        </p>
+                        <div className="mt-3">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={clearFilters}
+                            >
+                                Clear filters
+                            </Button>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        {favRows.length > 0 && (
+                            <section>
+                                <h3 className={sectionHeaderClass}>Favorites</h3>
+                                <ul className={listClass}>
+                                    {favRows.map(renderRow)}
+                                </ul>
+                            </section>
+                        )}
+                        {rest.length > 0 &&
+                            (restGroups ? (
+                                restGroups.map((group) => (
+                                    <section key={group.label}>
+                                        <h3 className={sectionHeaderClass}>
+                                            {group.label}
+                                        </h3>
+                                        <ul className={listClass}>
+                                            {group.items.map(renderRow)}
+                                        </ul>
+                                    </section>
+                                ))
+                            ) : favRows.length > 0 ? (
+                                <section>
+                                    <h3 className={sectionHeaderClass}>
+                                        All restaurants
+                                    </h3>
+                                    <ul className={listClass}>
+                                        {rest.map(renderRow)}
+                                    </ul>
+                                </section>
+                            ) : (
+                                <ul className={listClass}>
+                                    {rest.map(renderRow)}
+                                </ul>
+                            ))}
+                    </>
+                )}
             </Card>
+
+            {hiddenPickCount > 0 && (
+                <p className="text-[0.8125rem] text-[color:var(--text-secondary)]">
+                    {hiddenPickCount} of your{' '}
+                    {hiddenPickCount === 1 ? 'pick is' : 'picks are'} hidden by
+                    filters.
+                </p>
+            )}
 
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-[0.875rem] text-[color:var(--text-secondary)]">
