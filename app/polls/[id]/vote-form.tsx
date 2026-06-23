@@ -8,6 +8,7 @@ import {
     BallotRowExpand,
     type OrderStats,
 } from '@/components/poll/BallotRow'
+import { BallotSortMenu } from '@/components/poll/BallotSortMenu'
 import { CuisineFilterBar } from '@/components/poll/CuisineFilterBar'
 import { partitionFavorites } from '@/components/poll/partitionFavorites'
 import { useFavorites } from '@/components/poll/useFavorites'
@@ -20,6 +21,7 @@ import {
     filterByCuisines,
     groupByCuisine,
 } from '@/lib/ballot-grouping'
+import { type SortKey, sortBallot } from '@/lib/ballot-sorting'
 import { cn } from '@/lib/cn'
 import type { RichContent } from '@/lib/rich-content'
 
@@ -64,12 +66,19 @@ export default function VoteForm({
     const [expanded, setExpanded] = useState<Set<string>>(new Set())
     const [grouped, setGrouped] = useState(false)
     const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set())
+    const [sortKey, setSortKey] = useState<SortKey>('default')
     const { favorites, toggle: toggleFavorite } = useFavorites(initialFavoriteIds)
 
     const cuisineTags = useMemo(() => collectCuisineTags(ballot), [ballot])
+    // Filter (membership) first, then sort (order) — the two are independent, so
+    // the visible set drives counts while the sorted set drives render order.
     const visible = useMemo(
         () => filterByCuisines(ballot, activeFilters),
         [ballot, activeFilters],
+    )
+    const sorted = useMemo(
+        () => sortBallot(visible, sortKey, orderStatsByRestaurant),
+        [visible, sortKey, orderStatsByRestaurant],
     )
     const visibleIds = useMemo(
         () => new Set(visible.map((r) => r.id)),
@@ -337,7 +346,7 @@ export default function VoteForm({
     // Filtering (cuisine chips) narrows the list first; within the visible set,
     // favorites pin to a top section and the remainder renders either as cuisine
     // groups (when the "group by cuisine" toggle is on) or a flat list.
-    const { favorites: favRows, rest } = partitionFavorites(visible, favorites)
+    const { favorites: favRows, rest } = partitionFavorites(sorted, favorites)
     const restGroups = grouped ? groupByCuisine(rest) : null
     const sectionHeaderClass =
         'px-4 pt-4 pb-1 md:px-5 text-[0.75rem] font-medium uppercase tracking-wide text-[color:var(--text-secondary)]'
@@ -345,7 +354,7 @@ export default function VoteForm({
 
     return (
         <div className="space-y-4">
-            {cuisineTags.length > 0 && (
+            {cuisineTags.length > 0 ? (
                 <>
                     <CuisineFilterBar
                         tags={cuisineTags}
@@ -354,11 +363,21 @@ export default function VoteForm({
                         onClear={clearFilters}
                         grouped={grouped}
                         onGroupedChange={setGrouped}
+                        leading={
+                            <BallotSortMenu
+                                value={sortKey}
+                                onChange={setSortKey}
+                            />
+                        }
                     />
                     <p aria-live="polite" className="sr-only">
                         {visible.length} of {ballot.length} restaurants shown
                     </p>
                 </>
+            ) : (
+                ballot.length > 0 && (
+                    <BallotSortMenu value={sortKey} onChange={setSortKey} />
+                )
             )}
             <Card className="p-0 overflow-hidden">
                 {visible.length === 0 ? (

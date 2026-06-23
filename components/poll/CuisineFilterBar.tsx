@@ -1,7 +1,7 @@
 'use client'
 
 import { ChevronDown, SlidersHorizontal } from 'lucide-react'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { Button, buttonClasses, buttonIconSize } from '@/components/ui/Button'
 import { Switch } from '@/components/ui/Switch'
 import { cn } from '@/lib/cn'
@@ -15,6 +15,8 @@ type CuisineFilterBarProps = {
     onClear: () => void
     grouped: boolean
     onGroupedChange: (grouped: boolean) => void
+    /** Rendered first in the toolbar's left cluster (e.g. the sort control). */
+    leading?: ReactNode
 }
 
 export function CuisineFilterBar({
@@ -24,6 +26,7 @@ export function CuisineFilterBar({
     onClear,
     grouped,
     onGroupedChange,
+    leading,
 }: CuisineFilterBarProps) {
     const [open, setOpen] = useState(false)
     const iconSize = buttonIconSize('sm')
@@ -31,6 +34,7 @@ export function CuisineFilterBar({
         <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-3">
+                    {leading}
                     <label
                         htmlFor="group-by-cuisine"
                         className="flex cursor-pointer select-none items-center gap-2 text-[0.875rem] text-[color:var(--text-secondary)]"
