@@ -1,6 +1,8 @@
 'use client'
 
-import { Button } from '@/components/ui/Button'
+import { ChevronDown, SlidersHorizontal } from 'lucide-react'
+import { type ReactNode, useState } from 'react'
+import { Button, buttonClasses, buttonIconSize } from '@/components/ui/Button'
 import { Switch } from '@/components/ui/Switch'
 import { cn } from '@/lib/cn'
 
@@ -13,6 +15,8 @@ type CuisineFilterBarProps = {
     onClear: () => void
     grouped: boolean
     onGroupedChange: (grouped: boolean) => void
+    /** Rendered first in the toolbar's left cluster (e.g. the sort control). */
+    leading?: ReactNode
 }
 
 export function CuisineFilterBar({
@@ -22,21 +26,60 @@ export function CuisineFilterBar({
     onClear,
     grouped,
     onGroupedChange,
+    leading,
 }: CuisineFilterBarProps) {
+    const [open, setOpen] = useState(false)
+    const iconSize = buttonIconSize('sm')
     return (
         <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
-                <label
-                    htmlFor="group-by-cuisine"
-                    className="flex cursor-pointer select-none items-center gap-2 text-[0.875rem] text-[color:var(--text-secondary)]"
-                >
-                    <Switch
-                        id="group-by-cuisine"
-                        checked={grouped}
-                        onCheckedChange={onGroupedChange}
-                    />
-                    Group by cuisine
-                </label>
+                <div className="flex flex-wrap items-center gap-3">
+                    {leading}
+                    <label
+                        htmlFor="group-by-cuisine"
+                        className="flex cursor-pointer select-none items-center gap-2 text-[0.875rem] text-[color:var(--text-secondary)]"
+                    >
+                        <Switch
+                            id="group-by-cuisine"
+                            checked={grouped}
+                            onCheckedChange={onGroupedChange}
+                        />
+                        Group by cuisine
+                    </label>
+                    {tags.length > 0 && (
+                        <button
+                            type="button"
+                            aria-expanded={open}
+                            aria-controls="cuisine-tag-list"
+                            onClick={() => setOpen((v) => !v)}
+                            className={buttonClasses({
+                                variant: 'secondary',
+                                size: 'sm',
+                            })}
+                        >
+                            <SlidersHorizontal
+                                size={iconSize}
+                                strokeWidth={1.75}
+                                aria-hidden="true"
+                            />
+                            Filter by tags
+                            {active.size > 0 && (
+                                <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[color:var(--accent-brand)] px-1 text-[0.6875rem] font-semibold leading-none text-[color:var(--text-on-accent)]">
+                                    {active.size}
+                                </span>
+                            )}
+                            <ChevronDown
+                                size={iconSize}
+                                strokeWidth={1.75}
+                                aria-hidden="true"
+                                className={cn(
+                                    'transition-transform duration-150 motion-reduce:transition-none',
+                                    open && 'rotate-180',
+                                )}
+                            />
+                        </button>
+                    )}
+                </div>
                 {active.size > 0 && (
                     <Button
                         type="button"
@@ -48,8 +91,8 @@ export function CuisineFilterBar({
                     </Button>
                 )}
             </div>
-            {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+            {open && tags.length > 0 && (
+                <div id="cuisine-tag-list" className="flex flex-wrap gap-2">
                     {tags.map((tag) => {
                         const isActive = active.has(tag)
                         return (
