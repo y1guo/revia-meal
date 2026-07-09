@@ -198,8 +198,15 @@
 }
 
 /* ---------- Base element defaults ---------- */
+/* color-scheme must track the app's own theme (set via the .dark class on
+   <html>), NOT the OS. If we advertise `light dark` here, the browser paints
+   UA-rendered chrome — <select> popups + their <option>s, native date/time
+   pickers, scrollbars, autofill — using the OS preference. That desyncs from
+   our forced theme: e.g. app in light mode on a dark-OS machine renders
+   native <option> text white on the select's white background (white-on-white
+   restaurant names in the /history filters). Pin light here; .dark flips it. */
 html {
-    color-scheme: light dark;
+    color-scheme: light;
 }
 .dark {
     color-scheme: dark;
